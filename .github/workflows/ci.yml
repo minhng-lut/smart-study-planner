@@ -23,6 +23,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install repository tooling
+        run: npm install
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run lint
+        run: npm run lint
+
       - name: Install frontend dependencies
         working-directory: services/frontend
         run: npm install

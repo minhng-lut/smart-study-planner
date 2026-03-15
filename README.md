@@ -98,6 +98,8 @@ GitHub Actions installs service dependencies and builds Docker images for the ap
 
 Repository commit rules and working conventions are defined in `CONTRIBUTING.md`.
 
+Formatting and linting are configured at the repository root with Prettier, ESLint, and workspace VS Code settings for auto-format on save.
+
 ## Notes
 
 - Authentication, analytics, and business logic are intentionally excluded.

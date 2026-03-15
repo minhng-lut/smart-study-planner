@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.git/
+services/**/node_modules/
+services/frontend/dist/
+
