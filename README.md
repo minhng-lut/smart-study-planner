@@ -98,3 +98,6 @@ GitHub Actions installs service dependencies and builds Docker images for the ap
 
 - Authentication, analytics, and business logic are intentionally excluded.
 - Monitoring is provisioned with minimal defaults to keep the scaffold clean.
+
+
+# Members
