@@ -94,6 +94,10 @@ The Swarm stack includes:
 
 GitHub Actions installs service dependencies and builds Docker images for the application services.
 
+## Conventions
+
+Repository commit rules and working conventions are defined in `CONTRIBUTING.md`.
+
 ## Notes
 
 - Authentication, analytics, and business logic are intentionally excluded.
