@@ -85,18 +85,16 @@ Start PostgreSQL and the application stack:
 docker compose -f docker/docker-compose.dev.yml up --build
 ```
 
-Install backend dependencies and generate the Prisma client:
+Generate the Prisma client from the backend workspace:
 
 ```bash
-cd services/backend
-npm install
-npm run prisma:generate
+npm run prisma:generate --workspace backend
 ```
 
 Apply the current Prisma schema to the local PostgreSQL instance:
 
 ```bash
-npm run prisma:db:push
+npm run prisma:db:push --workspace backend
 ```
 
 Prisma 7 uses `prisma.config.ts` for the CLI datasource URL, while runtime database access is configured through the PostgreSQL driver adapter in `services/backend/src/lib/prisma.js`. The backend stays JavaScript-only, so it uses Prisma 7 with the `prisma-client-js` generator and a driver adapter instead of the new TypeScript-only generated client layout.
@@ -127,6 +125,15 @@ The Swarm stack includes:
 ## CI
 
 GitHub Actions installs service dependencies and builds Docker images for the application services.
+
+## Workspaces
+
+The repository uses npm workspaces for the Node services:
+
+- `services/frontend`
+- `services/backend`
+
+The workspace root owns the main `package-lock.json`. A root `node_modules/` directory is expected because npm hoists shared packages there.
 
 ## Conventions
 

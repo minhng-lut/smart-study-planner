@@ -6,7 +6,16 @@
     "lint": "eslint services/frontend/src services/frontend/vite.config.ts services/backend/src services/backend/prisma.config.ts",
     "lint:fix": "npm run lint -- --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "build": "npm run build --workspaces",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "dev:backend": "npm run dev --workspace backend",
+    "build:frontend": "npm run build --workspace frontend",
+    "build:backend": "npm run build --workspace backend",
+    "prisma:generate": "npm run prisma:generate --workspace backend",
+    "prisma:db:push": "npm run prisma:db:push --workspace backend",
+    "prisma:migrate:dev": "npm run prisma:migrate:dev --workspace backend",
+    "prisma:studio": "npm run prisma:studio --workspace backend"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
@@ -21,5 +30,9 @@
   },
   "engines": {
     "node": ">=24"
-  }
+  },
+  "workspaces": [
+    "services/frontend",
+    "services/backend"
+  ]
 }
