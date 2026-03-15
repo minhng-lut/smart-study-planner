@@ -31,6 +31,8 @@ services:
       context: ../services/backend
     env_file:
       - ../services/backend/.env.example
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/app?schema=public
     labels:
       - traefik.enable=true
       - traefik.http.routers.backend.rule=PathPrefix(`/api`)
@@ -42,6 +44,9 @@ services:
     networks:
       - public
       - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   python-service:
     build:
@@ -66,10 +71,17 @@ services:
       POSTGRES_DB: app
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
+    ports:
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   public:
@@ -79,4 +91,3 @@ networks:
 
 volumes:
   postgres_data:
-

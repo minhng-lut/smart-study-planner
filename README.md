@@ -25,6 +25,7 @@ This repository provides an initial cloud microservices scaffold with a React fr
 ### Backend
 
 - Runtime: Node.js + Express
+- ORM: Prisma ORM 7
 - Route: `/api/health`
 - Response: `{ "status": "ok" }`
 
@@ -66,6 +67,39 @@ Accessible endpoints:
 - Frontend: `http://localhost/`
 - Backend health: `http://localhost/api/health`
 - Python health: `http://localhost/python/health`
+- PostgreSQL: `localhost:5433`
+
+### Prisma Local Setup
+
+Backend Prisma files live in `services/backend/prisma`, and Prisma CLI configuration lives in `services/backend/prisma.config.ts`.
+
+Prepare local backend environment:
+
+```bash
+cp services/backend/.env.example services/backend/.env
+```
+
+Start PostgreSQL and the application stack:
+
+```bash
+docker compose -f docker/docker-compose.dev.yml up --build
+```
+
+Install backend dependencies and generate the Prisma client:
+
+```bash
+cd services/backend
+npm install
+npm run prisma:generate
+```
+
+Apply the current Prisma schema to the local PostgreSQL instance:
+
+```bash
+npm run prisma:db:push
+```
+
+Prisma 7 uses `prisma.config.ts` for the CLI datasource URL, while runtime database access is configured through the PostgreSQL driver adapter in `services/backend/src/lib/prisma.js`. The backend stays JavaScript-only, so it uses Prisma 7 with the `prisma-client-js` generator and a driver adapter instead of the new TypeScript-only generated client layout.
 
 ## Docker Swarm
 
@@ -103,6 +137,7 @@ Formatting and linting are configured at the repository root with Prettier, ESLi
 ## Notes
 
 - Authentication, analytics, and business logic are intentionally excluded.
+- Prisma ORM 7 is configured for PostgreSQL without domain models yet.
 - Monitoring is provisioned with minimal defaults to keep the scaffold clean.
 
 

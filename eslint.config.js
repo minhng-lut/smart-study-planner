@@ -17,7 +17,17 @@ module.exports = [
     files: ['services/backend/src/**/*.js'],
     languageOptions: {
       ecmaVersion: 2024,
-      sourceType: 'commonjs',
+      sourceType: 'module',
+      globals: {
+        ...globals.node
+      }
+    }
+  },
+  {
+    files: ['services/backend/prisma.config.ts'],
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: 'module',
       globals: {
         ...globals.node
       }
@@ -54,4 +64,3 @@ module.exports = [
   },
   eslintConfigPrettier
 ];
-

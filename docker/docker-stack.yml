@@ -45,6 +45,8 @@ services:
     image: cloud-skeleton/backend:latest
     env_file:
       - ../services/backend/.env.example
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/app?schema=public
     networks:
       - public
       - internal
@@ -83,6 +85,7 @@ services:
       POSTGRES_DB: app
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

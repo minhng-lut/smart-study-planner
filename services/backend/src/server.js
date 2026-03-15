@@ -1,4 +1,5 @@
-const express = require('express');
+import 'dotenv/config';
+import express from 'express';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -10,4 +11,3 @@ app.get('/health', (_req, res) => {
 app.listen(port, () => {
   console.log(`backend listening on ${port}`);
 });
-
