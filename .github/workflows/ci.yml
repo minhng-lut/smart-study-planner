@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install frontend dependencies
+        working-directory: services/frontend
+        run: npm install
+
+      - name: Install backend dependencies
+        working-directory: services/backend
+        run: npm install
+
+      - name: Install python service dependencies
+        working-directory: services/python-service
+        run: pip install -r requirements.txt
+
+      - name: Build frontend image
+        run: docker build -t frontend:ci ./services/frontend
+
+      - name: Build backend image
+        run: docker build -t backend:ci ./services/backend
+
+      - name: Build python service image
+        run: docker build -t python-service:ci ./services/python-service

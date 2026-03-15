@@ -1,0 +1,82 @@
+services:
+  traefik:
+    image: traefik:v3.2
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ../infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+    networks:
+      - public
+
+  frontend:
+    build:
+      context: ../services/frontend
+    env_file:
+      - ../services/frontend/.env.example
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.frontend.rule=PathPrefix(`/`)
+      - traefik.http.routers.frontend.entrypoints=web
+      - traefik.http.routers.frontend.priority=1
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+    networks:
+      - public
+
+  backend:
+    build:
+      context: ../services/backend
+    env_file:
+      - ../services/backend/.env.example
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend.rule=PathPrefix(`/api`)
+      - traefik.http.routers.backend.entrypoints=web
+      - traefik.http.routers.backend.priority=10
+      - traefik.http.routers.backend.middlewares=backend-strip
+      - traefik.http.middlewares.backend-strip.stripprefix.prefixes=/api
+      - traefik.http.services.backend.loadbalancer.server.port=3000
+    networks:
+      - public
+      - internal
+
+  python-service:
+    build:
+      context: ../services/python-service
+    env_file:
+      - ../services/python-service/.env.example
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.python.rule=PathPrefix(`/python`)
+      - traefik.http.routers.python.entrypoints=web
+      - traefik.http.routers.python.priority=10
+      - traefik.http.routers.python.middlewares=python-strip
+      - traefik.http.middlewares.python-strip.stripprefix.prefixes=/python
+      - traefik.http.services.python.loadbalancer.server.port=8000
+    networks:
+      - public
+      - internal
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+networks:
+  public:
+    driver: bridge
+  internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
