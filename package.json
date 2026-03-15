@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "lint": "eslint services/frontend/src services/backend/src services/backend/prisma.config.ts eslint.config.js",
+    "lint": "eslint services/frontend/src services/frontend/vite.config.ts services/backend/src services/backend/prisma.config.ts",
     "lint:fix": "npm run lint -- --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -15,7 +15,9 @@
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^16.0.0",
-    "prettier": "^3.5.3"
+    "prettier": "^3.5.3",
+    "typescript-eslint": "^8.29.0",
+    "jiti": "^2.4.2"
   },
   "engines": {
     "node": ">=24"

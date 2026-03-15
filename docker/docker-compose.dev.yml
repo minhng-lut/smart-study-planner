@@ -1,6 +1,8 @@
 services:
   traefik:
-    image: traefik:v3.2
+    image: traefik:v3.6
+    environment:
+      DOCKER_API_VERSION: "1.40"
     command:
       - --configFile=/etc/traefik/traefik.yml
     ports:
@@ -19,6 +21,7 @@ services:
       - ../services/frontend/.env.example
     labels:
       - traefik.enable=true
+      - traefik.docker.network=docker_public
       - traefik.http.routers.frontend.rule=PathPrefix(`/`)
       - traefik.http.routers.frontend.entrypoints=web
       - traefik.http.routers.frontend.priority=1
@@ -35,6 +38,7 @@ services:
       DATABASE_URL: postgresql://app:app@postgres:5432/app?schema=public
     labels:
       - traefik.enable=true
+      - traefik.docker.network=docker_public
       - traefik.http.routers.backend.rule=PathPrefix(`/api`)
       - traefik.http.routers.backend.entrypoints=web
       - traefik.http.routers.backend.priority=10
@@ -55,6 +59,7 @@ services:
       - ../services/python-service/.env.example
     labels:
       - traefik.enable=true
+      - traefik.docker.network=docker_public
       - traefik.http.routers.python.rule=PathPrefix(`/python`)
       - traefik.http.routers.python.entrypoints=web
       - traefik.http.routers.python.priority=10

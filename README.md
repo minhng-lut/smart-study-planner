@@ -4,8 +4,8 @@ This repository provides an initial cloud microservices scaffold with a React fr
 
 ## Architecture
 
-- `services/frontend`: React + Vite application built into static assets and served by Nginx
-- `services/backend`: Node.js + Express API with a single health endpoint
+- `services/frontend`: React + Vite + TypeScript application built into static assets and served by Nginx
+- `services/backend`: Node.js + Express + TypeScript API with a single health endpoint
 - `services/python-service`: FastAPI service with a single health endpoint
 - `infrastructure/traefik`: Traefik static configuration
 - `infrastructure/monitoring`: Prometheus, Loki, and Grafana provisioning
@@ -24,7 +24,7 @@ This repository provides an initial cloud microservices scaffold with a React fr
 
 ### Backend
 
-- Runtime: Node.js + Express
+- Runtime: Node.js + Express + TypeScript
 - ORM: Prisma ORM 7
 - Route: `/api/health`
 - Response: `{ "status": "ok" }`
@@ -132,7 +132,7 @@ GitHub Actions installs service dependencies and builds Docker images for the ap
 
 Repository commit rules and working conventions are defined in `CONTRIBUTING.md`.
 
-Formatting and linting are configured at the repository root with Prettier, ESLint, and workspace VS Code settings for auto-format on save.
+Formatting and linting are configured at the repository root with Prettier, ESLint, TypeScript-aware linting, and workspace VS Code settings for auto-format on save.
 
 ## Notes
 
