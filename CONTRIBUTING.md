@@ -47,6 +47,26 @@ Examples:
 - `fix(backend): return consistent health payload`
 - `docs(readme): clarify swarm image publishing flow`
 
+## Branch Workflow
+
+Use these long-lived branches:
+
+- `main`: development and integration branch
+- `production`: release branch for deployable code
+
+Recommended flow:
+
+- Create feature branches from `main`
+- Open pull requests into `main` while work is in progress
+- Promote validated changes from `main` into `production`
+- Treat `production` as release-ready only
+
+Branch naming examples:
+
+- `feature/frontend-shell`
+- `fix/backend-healthcheck`
+- `chore/docker-cleanup`
+
 ## Repository Conventions
 
 - Keep service code inside `services/`

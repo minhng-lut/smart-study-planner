@@ -122,6 +122,21 @@ The Swarm stack includes:
 - loki
 - portainer
 
+## Branches
+
+The repository uses a two-branch promotion flow:
+
+- `main`: active development branch
+- `production`: release branch
+
+Typical flow:
+
+1. Branch from `main` for feature work
+2. Merge feature branches into `main`
+3. Promote validated changes from `main` to `production`
+
+The CI workflow is configured to run on pushes and pull requests targeting `main` and `production`.
+
 ## CI
 
 GitHub Actions installs service dependencies and builds Docker images for the application services.
