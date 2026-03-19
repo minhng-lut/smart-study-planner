@@ -99,6 +99,27 @@ npm run prisma:db:push --workspace backend
 
 Prisma 7 uses `prisma.config.ts` for the CLI datasource URL, while runtime database access is configured through the PostgreSQL driver adapter in `services/backend/src/lib/prisma.js`. The backend stays JavaScript-only, so it uses Prisma 7 with the `prisma-client-js` generator and a driver adapter instead of the new TypeScript-only generated client layout.
 
+## Authentication
+
+The backend includes JWT authentication with role-based access control:
+
+- roles: `user`, `admin`
+- access token: short-lived JWT
+- refresh token: JWT with server-side rotation and revocation tracking
+
+Backend auth endpoints:
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+- `GET /auth/me`
+- `GET /auth/admin`
+
+`GET /auth/admin` requires an authenticated user with the `admin` role.
+
+Public registration creates `user` accounts. Promote a user to `admin` directly in the database or add a protected admin-management flow later.
+
 ## Docker Swarm
 
 Initialize Swarm and deploy the full stack:

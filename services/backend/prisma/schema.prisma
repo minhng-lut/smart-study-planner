@@ -6,3 +6,33 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  role         Role           @default(USER)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id                String        @id @default(cuid())
+  tokenHash         String        @unique
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime      @default(now())
+  replacedByTokenId String?
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedByToken   RefreshToken? @relation("TokenRotation", fields: [replacedByTokenId], references: [id])
+  replacesToken     RefreshToken[] @relation("TokenRotation")
+
+  @@index([userId])
+}
