@@ -66,6 +66,8 @@ Accessible endpoints:
 
 - Frontend: `http://localhost/`
 - Backend health: `http://localhost/api/health`
+- Backend docs: `http://localhost/api/docs`
+- Backend OpenAPI JSON: `http://localhost/api/docs.json`
 - Python health: `http://localhost/python/health`
 - PostgreSQL: `localhost:5433`
 
