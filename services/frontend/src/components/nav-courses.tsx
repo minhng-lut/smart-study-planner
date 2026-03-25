@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import {
   ArrowUpRight,
   BookOpenText,
@@ -73,6 +73,9 @@ const COURSE_COLOR_OPTIONS = [
 export function NavCourses() {
   const { state, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname
+  });
   const courses = usePlannerStore((state) => state.courses);
   const addCourse = usePlannerStore((state) => state.addCourse);
   const deleteCourse = usePlannerStore((state) => state.deleteCourse);
@@ -165,7 +168,7 @@ export function NavCourses() {
         <PopoverContent
           side="right"
           align="start"
-          className="w-[22rem] rounded-[1.75rem] border border-[var(--study-popover-border)] bg-[var(--study-popover-surface)] p-0 text-[var(--study-ink)] shadow-[var(--study-popover-shadow)]"
+          className="w-[22rem] rounded-xl border border-[var(--study-popover-border)] bg-[var(--study-popover-surface)] p-0 text-[var(--study-ink)] shadow-[var(--study-popover-shadow)] bg-background"
         >
           <div className="relative overflow-hidden rounded-[inherit] px-4 py-4">
             <div
@@ -260,7 +263,7 @@ export function NavCourses() {
                 </div>
               </div>
 
-              <div className="rounded-[1.2rem] border border-[var(--study-line)] bg-[var(--study-surface-soft)] px-3 py-3">
+              <div className="rounded-lg border border-[var(--study-line)] bg-[var(--study-surface-soft)] px-3 py-3">
                 <div className="flex items-start gap-3">
                   <span
                     className="mt-1 inline-flex size-3 shrink-0 rounded-full"
@@ -317,7 +320,13 @@ export function NavCourses() {
           {courses.map((course) => (
             <Collapsible key={course.name}>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton
+                  asChild
+                  isActive={
+                    pathname === `/courses/${course.slug}` ||
+                    pathname.startsWith(`/courses/${course.slug}/`)
+                  }
+                >
                   <Link
                     to="/courses/$courseSlug"
                     params={{ courseSlug: course.slug }}
