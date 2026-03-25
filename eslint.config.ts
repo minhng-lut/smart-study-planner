@@ -1,9 +1,14 @@
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import js from '@eslint/js';
 import globals from 'globals';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import tseslint from 'typescript-eslint';
+
+const tsconfigRootDir = dirname(fileURLToPath(import.meta.url));
 
 export default [
   {
@@ -20,6 +25,9 @@ export default [
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: 'module',
+      parserOptions: {
+        tsconfigRootDir
+      },
       globals: {
         ...globals.node
       }
@@ -31,6 +39,7 @@ export default [
       ecmaVersion: 2024,
       sourceType: 'module',
       parserOptions: {
+        tsconfigRootDir,
         ecmaFeatures: {
           jsx: true
         }
