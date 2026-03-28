@@ -1,9 +1,9 @@
 import type { Role } from '@prisma/client';
 
-export type AuthRole = 'user' | 'admin';
+export type AuthRole = 'student' | 'admin';
 
 export type AuthenticatedUser = {
-  id: string;
+  id: number;
   email: string;
   role: AuthRole;
 };
@@ -24,5 +24,5 @@ export type RefreshTokenPayload = {
 };
 
 export function toAuthRole(role: Role): AuthRole {
-  return role === 'ADMIN' ? 'admin' : 'user';
+  return role === 'ADMIN' ? 'admin' : 'student';
 }

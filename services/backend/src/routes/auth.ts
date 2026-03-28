@@ -18,24 +18,43 @@ import { toAuthRole, type AuthenticatedUser } from '../types/auth.js';
 
 const router = Router();
 
-const credentialsSchema = z.object({
+const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8)
+});
+
+const registerSchema = loginSchema.extend({
+  fullName: z.string().trim().min(1).max(100).optional()
 });
 
 const refreshSchema = z.object({
   refreshToken: z.string().min(1)
 });
 
-function serializeUser(user: Pick<User, 'id' | 'email' | 'role'>) {
+function deriveFullName(email: string): string {
+  const localPart = email.split('@')[0] ?? 'Study Planner User';
+
+  return (
+    localPart
+      .replace(/[._-]+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, (character) => character.toUpperCase()) ||
+    'Study Planner User'
+  );
+}
+
+function serializeUser(user: Pick<User, 'id' | 'fullName' | 'email' | 'role'>) {
   return {
     id: user.id,
+    fullName: user.fullName,
     email: user.email,
     role: toAuthRole(user.role)
   };
 }
 
-async function issueTokenPair(user: Pick<User, 'id' | 'email' | 'role'>) {
+async function issueTokenPair(
+  user: Pick<User, 'id' | 'fullName' | 'email' | 'role'>
+) {
   const authUser: AuthenticatedUser = {
     id: user.id,
     email: user.email,
@@ -58,7 +77,7 @@ async function issueTokenPair(user: Pick<User, 'id' | 'email' | 'role'>) {
 
 function sendAuthResponse(
   res: Response,
-  user: Pick<User, 'id' | 'email' | 'role'>,
+  user: Pick<User, 'id' | 'fullName' | 'email' | 'role'>,
   accessToken: string,
   refreshToken: string,
   statusCode = 200
@@ -73,7 +92,7 @@ function sendAuthResponse(
 router.post(
   '/register',
   asyncHandler(async (req, res) => {
-    const { email, password } = credentialsSchema.parse(req.body);
+    const { fullName, email, password } = registerSchema.parse(req.body);
     const normalizedEmail = email.toLowerCase();
 
     const existingUser = await prisma.user.findUnique({
@@ -87,9 +106,10 @@ router.post(
 
     const user = await prisma.user.create({
       data: {
+        fullName: fullName?.trim() || deriveFullName(normalizedEmail),
         email: normalizedEmail,
         passwordHash: await hashPassword(password),
-        role: Role.USER
+        role: Role.STUDENT
       }
     });
 
@@ -102,7 +122,7 @@ router.post(
 router.post(
   '/login',
   asyncHandler(async (req, res) => {
-    const { email, password } = credentialsSchema.parse(req.body);
+    const { email, password } = loginSchema.parse(req.body);
     const normalizedEmail = email.toLowerCase();
 
     const user = await prisma.user.findUnique({
@@ -148,7 +168,7 @@ router.post(
       return;
     }
 
-    if (currentToken.userId != payload.sub) {
+    if (currentToken.userId !== Number(payload.sub)) {
       res.status(401).json({ message: 'Refresh token does not match user' });
       return;
     }
@@ -198,6 +218,7 @@ router.get(
       where: { id: req.auth!.id },
       select: {
         id: true,
+        fullName: true,
         email: true,
         role: true
       }

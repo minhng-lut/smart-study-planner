@@ -20,9 +20,14 @@ export function authenticateAccessToken(
 
   try {
     const payload = verifyAccessToken(token);
+    const userId = Number(payload.sub);
+
+    if (!Number.isInteger(userId)) {
+      throw new Error('Invalid token subject');
+    }
 
     req.auth = {
-      id: payload.sub,
+      id: userId,
       email: payload.email,
       role: payload.role
     };
