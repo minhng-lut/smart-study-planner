@@ -139,7 +139,11 @@ router.post(
       include: { user: true }
     });
 
-    if (!currentToken || currentToken.revokedAt || currentToken.expiresAt <= new Date()) {
+    if (
+      !currentToken ||
+      currentToken.revokedAt ||
+      currentToken.expiresAt <= new Date()
+    ) {
       res.status(401).json({ message: 'Refresh token is no longer valid' });
       return;
     }
@@ -149,8 +153,11 @@ router.post(
       return;
     }
 
-    const { accessToken, refreshToken: nextRefreshToken, refreshTokenRecord } =
-      await issueTokenPair(currentToken.user);
+    const {
+      accessToken,
+      refreshToken: nextRefreshToken,
+      refreshTokenRecord
+    } = await issueTokenPair(currentToken.user);
 
     await prisma.refreshToken.update({
       where: { id: currentToken.id },

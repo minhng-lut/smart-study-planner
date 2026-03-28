@@ -185,5 +185,4 @@ Formatting and linting are configured at the repository root with Prettier, ESLi
 - Prisma ORM 7 is configured for PostgreSQL without domain models yet.
 - Monitoring is provisioned with minimal defaults to keep the scaffold clean.
 
-
 # Members

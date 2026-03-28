@@ -38,11 +38,12 @@ function PlatformPage() {
           Platform
         </p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">
-          Router, query, and shared state are now part of the frontend foundation.
+          Router, query, and shared state are now part of the frontend
+          foundation.
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-          This route exists to prove TanStack Router is active beyond a single page and
-          to keep developer-facing links close to the new app shell.
+          This route exists to prove TanStack Router is active beyond a single
+          page and to keep developer-facing links close to the new app shell.
         </p>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {resources.map((resource) => (
@@ -62,7 +63,9 @@ function PlatformPage() {
                 </div>
                 <ExternalLink className="size-4 text-slate-500" />
               </div>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{resource.description}</p>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                {resource.description}
+              </p>
             </a>
           ))}
         </div>

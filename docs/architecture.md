@@ -29,4 +29,3 @@ The backend and python service use strip-prefix middleware so that each service 
 
 - `public`: ingress-facing network for Traefik and routed services
 - `internal`: private service-to-service network
-

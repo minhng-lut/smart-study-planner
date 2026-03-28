@@ -3,7 +3,8 @@ const openApiDocument = {
   info: {
     title: 'Smart Study Planner Backend API',
     version: '1.0.0',
-    description: 'Authentication and health endpoints for the Smart Study Planner backend.'
+    description:
+      'Authentication and health endpoints for the Smart Study Planner backend.'
   },
   servers: [
     {
@@ -11,10 +12,7 @@ const openApiDocument = {
       description: 'Local backend server'
     }
   ],
-  tags: [
-    { name: 'Health' },
-    { name: 'Authentication' }
-  ],
+  tags: [{ name: 'Health' }, { name: 'Authentication' }],
   components: {
     securitySchemes: {
       bearerAuth: {

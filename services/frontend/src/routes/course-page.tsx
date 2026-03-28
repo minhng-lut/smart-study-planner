@@ -93,13 +93,19 @@ function CoursePage() {
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-10">
       <div className="grid gap-10 border-b border-[var(--study-line)] pb-10 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="motion-enter motion-enter-strong relative" style={createMotionStyle(0)}>
+        <div
+          className="motion-enter motion-enter-strong relative"
+          style={createMotionStyle(0)}
+        >
           <div
             className="motion-orb absolute -left-8 top-0 h-28 w-28 rounded-full blur-3xl"
             style={{ backgroundColor: `${course.color}2f` }}
           />
           <div className="relative">
-            <div className="motion-enter inline-flex items-center gap-2 border-b border-[var(--study-line)] pb-2 text-[0.7rem] font-medium uppercase tracking-[0.28em] text-[var(--study-kicker)]" style={createMotionStyle(80)}>
+            <div
+              className="motion-enter inline-flex items-center gap-2 border-b border-[var(--study-line)] pb-2 text-[0.7rem] font-medium uppercase tracking-[0.28em] text-[var(--study-kicker)]"
+              style={createMotionStyle(80)}
+            >
               <BookOpenText
                 className="size-4"
                 style={{ color: course.color }}
@@ -107,7 +113,10 @@ function CoursePage() {
               Course workspace
             </div>
 
-            <div className="motion-enter mt-6 flex items-start gap-4" style={createMotionStyle(160)}>
+            <div
+              className="motion-enter mt-6 flex items-start gap-4"
+              style={createMotionStyle(160)}
+            >
               <span
                 className="mt-3 inline-flex size-4 shrink-0 rounded-full"
                 style={{ backgroundColor: course.color }}
@@ -125,7 +134,10 @@ function CoursePage() {
               </div>
             </div>
 
-            <div className="motion-enter mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[var(--study-copy-muted)]" style={createMotionStyle(240)}>
+            <div
+              className="motion-enter mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[var(--study-copy-muted)]"
+              style={createMotionStyle(240)}
+            >
               <div className="inline-flex items-center gap-2">
                 <ClipboardList className="size-4" />
                 {course.tasks.length} task{course.tasks.length === 1 ? '' : 's'}
@@ -147,7 +159,10 @@ function CoursePage() {
           </div>
         </div>
 
-        <div className="motion-enter lg:border-l lg:border-[var(--study-line)] lg:pl-8" style={createMotionStyle(140)}>
+        <div
+          className="motion-enter lg:border-l lg:border-[var(--study-line)] lg:pl-8"
+          style={createMotionStyle(140)}
+        >
           <p className="text-[0.7rem] font-medium uppercase tracking-[0.28em] text-[var(--study-kicker)]">
             Add task
           </p>
@@ -159,7 +174,11 @@ function CoursePage() {
             through small, visible steps.
           </p>
 
-          <form onSubmit={handleCreateTask} className="motion-enter mt-8 space-y-4" style={createMotionStyle(260)}>
+          <form
+            onSubmit={handleCreateTask}
+            className="motion-enter mt-8 space-y-4"
+            style={createMotionStyle(260)}
+          >
             <Input
               value={taskTitle}
               onChange={(event) => setTaskTitle(event.target.value)}
@@ -190,7 +209,10 @@ function CoursePage() {
           </p>
         </div>
 
-        <div className="motion-enter border-t border-[var(--study-line)]" style={createMotionStyle(380)}>
+        <div
+          className="motion-enter border-t border-[var(--study-line)]"
+          style={createMotionStyle(380)}
+        >
           {course.tasks.length > 0 ? (
             <div className="divide-y divide-[var(--study-line)]">
               {course.tasks.map((task, index) => (

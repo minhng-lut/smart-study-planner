@@ -2,12 +2,12 @@ services:
   traefik:
     image: traefik:v3.6
     environment:
-      DOCKER_API_VERSION: "1.40"
+      DOCKER_API_VERSION: '1.40'
     command:
       - --configFile=/etc/traefik/traefik.yml
     ports:
-      - "80:80"
-      - "8080:8080"
+      - '80:80'
+      - '8080:8080'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ../infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -77,13 +77,13 @@ services:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
     ports:
-      - "5433:5432"
+      - '5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      test: ['CMD-SHELL', 'pg_isready -U app -d app']
       interval: 10s
       timeout: 5s
       retries: 5

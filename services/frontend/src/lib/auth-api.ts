@@ -53,10 +53,18 @@ async function parseResponseBody(response: Response): Promise<unknown> {
   return response.text();
 }
 
-function createHeaders(body: unknown, headers?: HeadersInit, accessToken?: string) {
+function createHeaders(
+  body: unknown,
+  headers?: HeadersInit,
+  accessToken?: string
+) {
   const requestHeaders = new Headers(headers);
 
-  if (body !== undefined && !isFormData(body) && !requestHeaders.has('Content-Type')) {
+  if (
+    body !== undefined &&
+    !isFormData(body) &&
+    !requestHeaders.has('Content-Type')
+  ) {
     requestHeaders.set('Content-Type', 'application/json');
   }
 

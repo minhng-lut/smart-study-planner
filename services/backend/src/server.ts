@@ -1,4 +1,8 @@
-import express, { type NextFunction, type Request, type Response } from 'express';
+import express, {
+  type NextFunction,
+  type Request,
+  type Response
+} from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { ZodError } from 'zod';
 

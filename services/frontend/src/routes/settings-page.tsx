@@ -16,7 +16,10 @@ function SettingsPage() {
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-10">
       <div className="grid gap-8 border-b border-[var(--study-line)] pb-10 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="motion-enter motion-enter-strong relative" style={createMotionStyle(0)}>
+        <div
+          className="motion-enter motion-enter-strong relative"
+          style={createMotionStyle(0)}
+        >
           <div className="motion-orb absolute -left-6 top-0 h-28 w-28 rounded-full bg-[var(--study-orb-gold)] blur-3xl" />
           <div className="relative">
             <p
@@ -35,10 +38,10 @@ function SettingsPage() {
               className="motion-enter mt-5 max-w-2xl text-base leading-8 text-[var(--study-copy)]"
               style={createMotionStyle(230)}
             >
-              This area holds the account details tied to your study planner.
-              It stays intentionally light so future preferences, course
-              settings, and notification controls have room to grow without
-              turning the page into a dense admin panel.
+              This area holds the account details tied to your study planner. It
+              stays intentionally light so future preferences, course settings,
+              and notification controls have room to grow without turning the
+              page into a dense admin panel.
             </p>
           </div>
         </div>

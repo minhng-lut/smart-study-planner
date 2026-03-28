@@ -260,11 +260,11 @@ function AuthPage() {
             </p>
           </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className="mt-10 space-y-8"
-          >
-            <div className="motion-enter space-y-2" style={createMotionStyle(420)}>
+          <form onSubmit={handleSubmit} className="mt-10 space-y-8">
+            <div
+              className="motion-enter space-y-2"
+              style={createMotionStyle(420)}
+            >
               <label
                 htmlFor="email"
                 className="flex items-center gap-2 text-sm font-medium text-[var(--study-form-label)]"
@@ -286,7 +286,10 @@ function AuthPage() {
               />
             </div>
 
-            <div className="motion-enter space-y-2" style={createMotionStyle(500)}>
+            <div
+              className="motion-enter space-y-2"
+              style={createMotionStyle(500)}
+            >
               <label
                 htmlFor="password"
                 className="flex items-center gap-2 text-sm font-medium text-[var(--study-form-label)]"
@@ -312,12 +315,18 @@ function AuthPage() {
             </div>
 
             {authMutation.isError ? (
-              <div className="motion-enter rounded-[1.4rem] border border-[var(--study-error-border)] bg-[var(--study-error-surface)] px-4 py-3 text-sm text-[var(--study-error-text)]" style={createMotionStyle(540)}>
+              <div
+                className="motion-enter rounded-[1.4rem] border border-[var(--study-error-border)] bg-[var(--study-error-surface)] px-4 py-3 text-sm text-[var(--study-error-text)]"
+                style={createMotionStyle(540)}
+              >
                 {errorMessage}
               </div>
             ) : null}
 
-            <div className="motion-enter flex flex-wrap items-center gap-5 pt-2" style={createMotionStyle(580)}>
+            <div
+              className="motion-enter flex flex-wrap items-center gap-5 pt-2"
+              style={createMotionStyle(580)}
+            >
               <Button
                 type="submit"
                 size="lg"

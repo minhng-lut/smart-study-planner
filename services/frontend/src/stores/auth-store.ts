@@ -3,7 +3,10 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { AuthResponse, AuthUser } from '@/types/auth';
 
-type PersistedAuthState = Pick<AuthStore, 'user' | 'accessToken' | 'refreshToken'>;
+type PersistedAuthState = Pick<
+  AuthStore,
+  'user' | 'accessToken' | 'refreshToken'
+>;
 
 type AuthStore = PersistedAuthState & {
   setSession: (session: AuthResponse) => void;
@@ -38,7 +41,11 @@ export const useAuthStore = create<AuthStore>()(
     {
       name: 'smart-study-planner-auth',
       storage: createJSONStorage(() => localStorage),
-      partialize: ({ user, accessToken, refreshToken }): PersistedAuthState => ({
+      partialize: ({
+        user,
+        accessToken,
+        refreshToken
+      }): PersistedAuthState => ({
         user,
         accessToken,
         refreshToken

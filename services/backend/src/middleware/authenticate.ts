@@ -10,7 +10,9 @@ export function authenticateAccessToken(
   const authorization = req.header('authorization');
 
   if (!authorization?.startsWith('Bearer ')) {
-    res.status(401).json({ message: 'Missing or invalid authorization header' });
+    res
+      .status(401)
+      .json({ message: 'Missing or invalid authorization header' });
     return;
   }
 

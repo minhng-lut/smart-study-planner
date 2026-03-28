@@ -34,7 +34,10 @@ export function signAccessToken(user: AuthenticatedUser): string {
   );
 }
 
-export function signRefreshToken(user: AuthenticatedUser): { token: string; jti: string } {
+export function signRefreshToken(user: AuthenticatedUser): {
+  token: string;
+  jti: string;
+} {
   const jti = randomUUID();
 
   const token = jwt.sign(

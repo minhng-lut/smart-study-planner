@@ -21,7 +21,10 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['services/backend/src/**/*.ts', 'services/backend/prisma.config.ts'],
+    files: [
+      'services/backend/src/**/*.ts',
+      'services/backend/prisma.config.ts'
+    ],
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: 'module',
@@ -34,7 +37,11 @@ export default [
     }
   },
   {
-    files: ['services/frontend/src/**/*.ts', 'services/frontend/src/**/*.tsx', 'services/frontend/vite.config.ts'],
+    files: [
+      'services/frontend/src/**/*.ts',
+      'services/frontend/src/**/*.tsx',
+      'services/frontend/vite.config.ts'
+    ],
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: 'module',
