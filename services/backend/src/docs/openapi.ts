@@ -25,15 +25,25 @@ const openApiDocument = {
       User: {
         type: 'object',
         properties: {
-          id: { type: 'string' },
+          id: { type: 'integer' },
+          fullName: { type: 'string' },
           email: { type: 'string', format: 'email' },
-          role: { type: 'string', enum: ['user', 'admin'] }
+          role: { type: 'string', enum: ['student', 'admin'] }
         },
-        required: ['id', 'email', 'role']
+        required: ['id', 'fullName', 'email', 'role']
       },
-      CredentialsRequest: {
+      LoginRequest: {
         type: 'object',
         properties: {
+          email: { type: 'string', format: 'email' },
+          password: { type: 'string', minLength: 8 }
+        },
+        required: ['email', 'password']
+      },
+      RegisterRequest: {
+        type: 'object',
+        properties: {
+          fullName: { type: 'string', maxLength: 100 },
           email: { type: 'string', format: 'email' },
           password: { type: 'string', minLength: 8 }
         },
@@ -111,7 +121,7 @@ const openApiDocument = {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/CredentialsRequest' }
+              schema: { $ref: '#/components/schemas/RegisterRequest' }
             }
           }
         },
@@ -151,7 +161,7 @@ const openApiDocument = {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/CredentialsRequest' }
+              schema: { $ref: '#/components/schemas/LoginRequest' }
             }
           }
         },

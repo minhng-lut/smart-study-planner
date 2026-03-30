@@ -24,7 +24,7 @@ export function hashToken(token: string): string {
 export function signAccessToken(user: AuthenticatedUser): string {
   return jwt.sign(
     {
-      sub: user.id,
+      sub: String(user.id),
       email: user.email,
       role: user.role,
       tokenType: 'access'
@@ -42,7 +42,7 @@ export function signRefreshToken(user: AuthenticatedUser): {
 
   const token = jwt.sign(
     {
-      sub: user.id,
+      sub: String(user.id),
       email: user.email,
       role: user.role,
       tokenType: 'refresh',

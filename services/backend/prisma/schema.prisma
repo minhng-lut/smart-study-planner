@@ -8,31 +8,114 @@ datasource db {
 }
 
 enum Role {
-  USER
-  ADMIN
+  STUDENT @map("student")
+  ADMIN   @map("admin")
+
+  @@map("user_role_enum")
+}
+
+enum TaskStatus {
+  PENDING     @map("pending")
+  IN_PROGRESS @map("in_progress")
+  COMPLETED   @map("completed")
+  OVERDUE     @map("overdue")
+
+  @@map("task_status_enum")
+}
+
+enum TaskPriority {
+  LOW    @map("low")
+  MEDIUM @map("medium")
+  HIGH   @map("high")
+
+  @@map("task_priority_enum")
+}
+
+enum RiskLevel {
+  NONE   @map("none")
+  LOW    @map("low")
+  MEDIUM @map("medium")
+  HIGH   @map("high")
+
+  @@map("risk_level_enum")
 }
 
 model User {
-  id           String         @id @default(cuid())
-  email        String         @unique
-  passwordHash String
-  role         Role           @default(USER)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  refreshTokens RefreshToken[]
+  id               Int               @id @default(autoincrement())
+  fullName         String            @map("full_name") @db.VarChar(100)
+  email            String            @unique @db.VarChar(255)
+  passwordHash     String            @map("password_hash") @db.Text
+  role             Role              @default(STUDENT)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at")
+  refreshTokens    RefreshToken[]
+  courses          Course[]
+  analyticsResults AnalyticsResult[]
+
+  @@map("users")
 }
 
 model RefreshToken {
-  id                String        @id @default(cuid())
-  tokenHash         String        @unique
-  expiresAt         DateTime
-  revokedAt         DateTime?
-  createdAt         DateTime      @default(now())
-  replacedByTokenId String?
-  userId            String
-  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  replacedByToken   RefreshToken? @relation("TokenRotation", fields: [replacedByTokenId], references: [id])
+  id                Int            @id @default(autoincrement())
+  tokenHash         String         @unique @map("token_hash")
+  expiresAt         DateTime       @map("expires_at")
+  revokedAt         DateTime?      @map("revoked_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  replacedByTokenId Int?           @map("replaced_by_token_id")
+  userId            Int            @map("user_id")
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedByToken   RefreshToken?  @relation("TokenRotation", fields: [replacedByTokenId], references: [id])
   replacesToken     RefreshToken[] @relation("TokenRotation")
 
   @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Course {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  name        String   @db.VarChar(100)
+  code        String?  @db.VarChar(30)
+  description String?  @db.Text
+  color       String?  @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@index([userId])
+  @@map("courses")
+}
+
+model Task {
+  id             Int           @id @default(autoincrement())
+  courseId       Int           @map("course_id")
+  title          String        @db.VarChar(150)
+  description    String?       @db.Text
+  deadline       DateTime?
+  estimatedHours Decimal       @map("estimated_hours") @default(0) @db.Decimal(5, 2)
+  actualHours    Decimal       @map("actual_hours") @default(0) @db.Decimal(5, 2)
+  status         TaskStatus    @default(PENDING)
+  priority       TaskPriority?
+  completedAt    DateTime?     @map("completed_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at")
+  course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("tasks")
+}
+
+model AnalyticsResult {
+  id                     Int        @id @default(autoincrement())
+  userId                 Int        @map("user_id")
+  generatedAt            DateTime   @default(now()) @map("generated_at")
+  workloadScore          Decimal?   @map("workload_score") @db.Decimal(6, 2)
+  riskLevel              RiskLevel? @map("risk_level")
+  recommendedHoursPerDay Decimal?   @map("recommended_hours_per_day") @db.Decimal(5, 2)
+  summaryJson            Json?      @map("summary_json")
+  user                   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("analytics_results")
 }
