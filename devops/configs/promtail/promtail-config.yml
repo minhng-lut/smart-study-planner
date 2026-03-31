@@ -24,11 +24,13 @@ scrape_configs:
         target_label: container
 
       # Docker Swarm service name
-      - source_labels: [__meta_docker_container_label_com_docker_swarm_service_name]
+      - source_labels:
+          [__meta_docker_container_label_com_docker_swarm_service_name]
         target_label: service
 
       # Docker Swarm stack (namespace)
-      - source_labels: [__meta_docker_container_label_com_docker_stack_namespace]
+      - source_labels:
+          [__meta_docker_container_label_com_docker_stack_namespace]
         target_label: stack
 
       # Log stream (stdout / stderr)
@@ -40,7 +42,8 @@ scrape_configs:
         target_label: image
 
       # Drop containers with no swarm service label (standalone containers)
-      - source_labels: [__meta_docker_container_label_com_docker_swarm_service_name]
+      - source_labels:
+          [__meta_docker_container_label_com_docker_swarm_service_name]
         regex: .+
         action: keep
 

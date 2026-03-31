@@ -37,13 +37,13 @@ flowchart TD
     end
 ```
 
-| Service | URL | Notes |
-|---|---|---|
-| **Traefik v3** | https://lut.longle77.site/traefik/dashboard/ | Reverse proxy + dashboard (basic auth) |
-| **Portainer CE** | https://lut.longle77.site/portainer/ | Container/swarm management UI |
-| **Prometheus** | https://lut.longle77.site/prometheus | Metrics scraping (basic auth) |
-| **Grafana** | https://lut.longle77.site/grafana | Dashboards & visualisation |
-| **Loki** | internal only | Log aggregation (Grafana datasource) |
+| Service          | URL                                          | Notes                                  |
+| ---------------- | -------------------------------------------- | -------------------------------------- |
+| **Traefik v3**   | https://lut.longle77.site/traefik/dashboard/ | Reverse proxy + dashboard (basic auth) |
+| **Portainer CE** | https://lut.longle77.site/portainer/         | Container/swarm management UI          |
+| **Prometheus**   | https://lut.longle77.site/prometheus         | Metrics scraping (basic auth)          |
+| **Grafana**      | https://lut.longle77.site/grafana            | Dashboards & visualisation             |
+| **Loki**         | internal only                                | Log aggregation (Grafana datasource)   |
 
 ---
 
@@ -78,12 +78,12 @@ devops/
 
 The following dashboards are automatically provisioned on deploy:
 
-| Dashboard | Source |
-|---|---|
-| Node Exporter Full | Host CPU, memory, disk, network |
-| cAdvisor | Per-container resource usage |
-| Traefik | Request rates, latencies, error codes |
-| Docker Container Logs | Loki log browser by stack/service |
+| Dashboard             | Source                                |
+| --------------------- | ------------------------------------- |
+| Node Exporter Full    | Host CPU, memory, disk, network       |
+| cAdvisor              | Per-container resource usage          |
+| Traefik               | Request rates, latencies, error codes |
+| Docker Container Logs | Loki log browser by stack/service     |
 
 To update a dashboard, replace the JSON file in `configs/grafana/dashboards/` and bump the config version in `stacks/monitoring.yml` (e.g. `grafana-dash-traefik-v2`).
 
@@ -96,6 +96,7 @@ Promtail runs in **global mode** (one instance per swarm node) and automatically
 Logs are labelled with: `stack`, `service`, `container`, `stream`.
 
 Query logs in **Grafana → Explore → Loki**:
+
 ```
 {stack="monitoring"}
 {service="traefik_traefik"}
@@ -162,6 +163,7 @@ docker stack deploy -c /home/sudo_user/swarm/stacks/loki.yml --with-registry-aut
 ## Updating Docker Configs (Grafana/Prometheus/Loki)
 
 Docker Swarm configs are immutable. To update any config file:
+
 1. Edit the file in `configs/`
 2. Bump the version suffix in `stacks/monitoring.yml` or `stacks/loki.yml` (e.g. `v1` → `v2`)
 3. Redeploy the stack

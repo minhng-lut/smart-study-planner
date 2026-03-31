@@ -1,4 +1,4 @@
-version: "3.9"
+version: '3.9'
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Traefik v3 — reverse proxy + Let's Encrypt HTTP-01 + Prometheus metrics
@@ -101,5 +101,5 @@ services:
 
         # ── Basic-auth middleware (generate hash with deploy.sh --gen-password) ─
         # Replace the value below with: echo $(htpasswd -nB admin) | sed 's/\$/\$\$/g'
-        - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:admin"
+        - 'traefik.http.middlewares.traefik-auth.basicauth.users=admin:admin'
         - traefik.http.services.traefik-dashboard-svc.loadbalancer.server.port=8080

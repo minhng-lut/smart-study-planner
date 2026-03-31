@@ -1,4 +1,4 @@
-version: "3.9"
+version: '3.9'
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Monitoring stack: Prometheus + Grafana + Node Exporter + cAdvisor
@@ -78,7 +78,7 @@ services:
         - traefik.http.routers.prometheus.middlewares=prometheus-auth
 
         # ── Basic auth (same password generator as Traefik dashboard) ──────────
-        - "traefik.http.middlewares.prometheus-auth.basicauth.users=admin:$$2y$$05$$placeholder.replace.this.with.real.hash"
+        - 'traefik.http.middlewares.prometheus-auth.basicauth.users=admin:$$2y$$05$$placeholder.replace.this.with.real.hash'
 
         # ── Backend service ────────────────────────────────────────────────────
         - traefik.http.services.prometheus.loadbalancer.server.port=9090
@@ -88,13 +88,13 @@ services:
     image: grafana/grafana:latest
     environment:
       GF_SERVER_ROOT_URL: https://lut.longle77.site/grafana
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SERVER_SERVE_FROM_SUB_PATH: 'true'
       GF_SECURITY_ADMIN_USER: admin
       # Set via Docker secret or change before deploying
       GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_ANALYTICS_REPORTING_ENABLED: "false"
-      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/node-exporter-full.json
     secrets:
       - grafana_admin_password

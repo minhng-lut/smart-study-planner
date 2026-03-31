@@ -15,13 +15,13 @@ scrape_configs:
   # ── Prometheus self-scrape ───────────────────────────────────────────────────
   - job_name: prometheus
     static_configs:
-      - targets: ["localhost:9090"]
+      - targets: ['localhost:9090']
 
   # ── Traefik metrics ──────────────────────────────────────────────────────────
   # Traefik exposes metrics on port 8082 (entrypoint: traefik-metrics)
   - job_name: traefik
     static_configs:
-      - targets: ["traefik:8082"]
+      - targets: ['traefik:8082']
     metrics_path: /metrics
 
   # ── Node Exporter (host metrics) ─────────────────────────────────────────────
@@ -50,5 +50,5 @@ scrape_configs:
   # ── Grafana (optional self-scrape) ───────────────────────────────────────────
   - job_name: grafana
     static_configs:
-      - targets: ["grafana:3000"]
+      - targets: ['grafana:3000']
     metrics_path: /metrics
