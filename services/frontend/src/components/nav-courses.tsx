@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import {
   ArrowUpRight,
@@ -34,6 +35,12 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover';
 import {
+  createCourse,
+  deleteCourse as deleteCourseRequest,
+  listCourses
+} from '@/lib/courses-api';
+import { deleteTask as deleteTaskRequest } from '@/lib/tasks-api';
+import {
   SidebarGroup,
   SidebarGroupAction,
   SidebarGroupContent,
@@ -47,7 +54,6 @@ import {
   SidebarMenuSubItem,
   useSidebar
 } from '@/components/ui/sidebar';
-import { usePlannerStore } from '@/stores/planner-store';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,8 +63,8 @@ import {
 } from './ui/dropdown-menu';
 
 type DeleteTarget =
-  | { type: 'course'; courseId: string; label: string }
-  | { type: 'task'; courseId: string; taskId: string; label: string }
+  | { type: 'course'; courseId: number; label: string }
+  | { type: 'task'; taskId: number; label: string }
   | null;
 
 const COURSE_COLOR_OPTIONS = [
@@ -73,13 +79,43 @@ const COURSE_COLOR_OPTIONS = [
 export function NavCourses() {
   const { state, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const pathname = useRouterState({
     select: (state) => state.location.pathname
   });
-  const courses = usePlannerStore((state) => state.courses);
-  const addCourse = usePlannerStore((state) => state.addCourse);
-  const deleteCourse = usePlannerStore((state) => state.deleteCourse);
-  const deleteTask = usePlannerStore((state) => state.deleteTask);
+  const coursesQuery = useQuery({
+    queryKey: ['courses'],
+    queryFn: listCourses
+  });
+  const courses = coursesQuery.data?.courses ?? [];
+
+  const createCourseMutation = useMutation({
+    mutationFn: createCourse,
+    onSuccess: async ({ course }) => {
+      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+      await navigate({
+        to: '/courses/$courseId',
+        params: {
+          courseId: String(course.id)
+        }
+      });
+    }
+  });
+
+  const deleteCourseMutation = useMutation({
+    mutationFn: deleteCourseRequest,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+      await navigate({ to: '/' });
+    }
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: deleteTaskRequest,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+    }
+  });
 
   const [isCoursePopoverOpen, setIsCoursePopoverOpen] = useState(false);
   const [courseName, setCourseName] = useState('');
@@ -88,39 +124,41 @@ export function NavCourses() {
   );
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
 
-  function handleCreateCourse(event: FormEvent<HTMLFormElement>) {
+  async function handleCreateCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const createdCourse = addCourse(courseName, courseColor);
+    const normalizedName = courseName.trim();
 
-    if (!createdCourse) {
+    if (!normalizedName) {
       return;
     }
+
+    await createCourseMutation.mutateAsync({
+      name: normalizedName,
+      color: courseColor
+    });
 
     setCourseName('');
     setCourseColor(COURSE_COLOR_OPTIONS[0]);
     setIsCoursePopoverOpen(false);
-    void navigate({
-      to: '/courses/$courseSlug',
-      params: {
-        courseSlug: createdCourse.slug
-      }
-    });
   }
 
-  function handleConfirmDelete() {
+  async function handleConfirmDelete() {
     if (!deleteTarget) {
       return;
     }
 
     if (deleteTarget.type === 'course') {
-      deleteCourse(deleteTarget.courseId);
-      void navigate({ to: '/' });
+      await deleteCourseMutation.mutateAsync(deleteTarget.courseId);
     } else {
-      deleteTask(deleteTarget.courseId, deleteTarget.taskId);
+      await deleteTaskMutation.mutateAsync(deleteTarget.taskId);
     }
 
     setDeleteTarget(null);
+  }
+
+  function getCourseColor(color: string | null) {
+    return color ?? '#4f46e5';
   }
   if (state === 'collapsed') {
     return (
@@ -323,19 +361,19 @@ export function NavCourses() {
                 <SidebarMenuButton
                   asChild
                   isActive={
-                    pathname === `/courses/${course.slug}` ||
-                    pathname.startsWith(`/courses/${course.slug}/`)
+                    pathname === `/courses/${course.id}` ||
+                    pathname.startsWith(`/courses/${course.id}/`)
                   }
                 >
                   <Link
-                    to="/courses/$courseSlug"
-                    params={{ courseSlug: course.slug }}
+                    to="/courses/$courseId"
+                    params={{ courseId: String(course.id) }}
                   >
                     <Dot
                       className="rounded-full"
                       style={{
-                        backgroundColor: course.color,
-                        color: course.color
+                        backgroundColor: getCourseColor(course.color),
+                        color: getCourseColor(course.color)
                       }}
                     />
                     <span>{course.name}</span>
@@ -363,8 +401,8 @@ export function NavCourses() {
                     <DropdownMenuItem
                       onClick={() =>
                         void navigate({
-                          to: '/courses/$courseSlug',
-                          params: { courseSlug: course.slug }
+                          to: '/courses/$courseId',
+                          params: { courseId: String(course.id) }
                         })
                       }
                     >
@@ -395,7 +433,7 @@ export function NavCourses() {
                   <SidebarMenuSub>
                     {course.tasks.length > 0 ? (
                       course.tasks.map((task) => (
-                        <SidebarMenuSubItem key={task.title}>
+                        <SidebarMenuSubItem key={task.id}>
                           <SidebarMenuSubButton asChild>
                             <a href="#">
                               <ClipboardList className="text-sidebar-foreground/55" />
@@ -460,7 +498,7 @@ export function NavCourses() {
             <Button
               type="button"
               variant="destructive"
-              onClick={handleConfirmDelete}
+              onClick={() => void handleConfirmDelete()}
             >
               Delete
             </Button>

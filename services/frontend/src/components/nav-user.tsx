@@ -68,7 +68,7 @@ export function NavUser({ user, isLoggingOut, onLogout }: NavUserProps) {
       name: getDisplayName(user?.email),
       email: user?.email ?? 'Loading profile',
       initials: getInitials(user?.email),
-      role: user?.role ?? 'user'
+      role: user?.role ?? 'student'
     }),
     [user]
   );

@@ -99,6 +99,24 @@ Apply the current Prisma schema to the local PostgreSQL instance:
 npm run prisma:db:push --workspace backend
 ```
 
+Inspect data in PostgreSQL:
+
+```bash
+docker compose -f docker/docker-compose.dev.yml exec postgres psql -U app -d app
+```
+
+After opening `psql`, query any table:
+
+```sql
+SELECT * FROM "table_name";
+```
+
+Example:
+
+```sql
+SELECT * FROM "courses";
+```
+
 Prisma 7 uses `prisma.config.ts` for the CLI datasource URL, while runtime database access is configured through the PostgreSQL driver adapter in `services/backend/src/lib/prisma.js`. The backend stays JavaScript-only, so it uses Prisma 7 with the `prisma-client-js` generator and a driver adapter instead of the new TypeScript-only generated client layout.
 
 ## Authentication
