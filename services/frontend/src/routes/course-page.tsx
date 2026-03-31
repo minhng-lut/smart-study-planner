@@ -226,7 +226,10 @@ function CoursePage() {
               type="submit"
               size="lg"
               className="rounded-full px-5"
-              style={{ backgroundColor: getCourseColor(course.color), color: 'white' }}
+              style={{
+                backgroundColor: getCourseColor(course.color),
+                color: 'white'
+              }}
             >
               <Plus className="size-4" />
               Add task

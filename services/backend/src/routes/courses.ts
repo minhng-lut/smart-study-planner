@@ -41,7 +41,9 @@ router.use(authenticateAccessToken);
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { name, color, code, description } = createCourseSchema.parse(req.body);
+    const { name, color, code, description } = createCourseSchema.parse(
+      req.body
+    );
     const userId = req.auth!.id;
 
     const course = await prisma.course.create({

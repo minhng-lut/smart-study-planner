@@ -107,7 +107,9 @@ function App() {
                     <div className="flex items-center gap-3">
                       <span
                         className="inline-flex size-3 shrink-0 rounded-full"
-                        style={{ backgroundColor: getCourseColor(course.color) }}
+                        style={{
+                          backgroundColor: getCourseColor(course.color)
+                        }}
                       />
                       <p className="truncate text-lg font-semibold text-[var(--study-ink-strong)]">
                         {course.name}
