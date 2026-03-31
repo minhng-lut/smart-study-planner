@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { TaskStatus, TaskPriority } from '@prisma/client';
+import type { TaskStatus, TaskPriority, Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 import { asyncHandler } from '../lib/async-handler.js';
@@ -101,8 +101,8 @@ router.post(
       return;
     }
 
-    const createData: any = {
-      courseId,
+    const createData: Prisma.TaskCreateInput = {
+      course: { connect: { id: courseId } },
       title,
       description,
       deadline: deadline ?? undefined,
