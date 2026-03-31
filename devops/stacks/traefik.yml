@@ -1,0 +1,105 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Traefik v3 — reverse proxy + Let's Encrypt HTTP-01 + Prometheus metrics
+# Path: https://lut.longle77.site/traefik/dashboard/
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  traefik-public:
+    external: true
+
+volumes:
+  traefik-certs:
+    name: traefik-certs
+
+services:
+  traefik:
+    image: traefik:v3
+    command:
+      # ── Global ──────────────────────────────────────────────────────────────
+      - --global.sendAnonymousUsage=false
+
+      # ── API / Dashboard ─────────────────────────────────────────────────────
+      - --api.dashboard=true
+
+      # ── Entrypoints ─────────────────────────────────────────────────────────
+      - --entrypoints.web.address=:80
+      # Permanent redirect HTTP → HTTPS
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      # Enable HTTP/3 (QUIC) on 443/udp
+      - --entrypoints.websecure.http3=true
+
+      # ── Docker Swarm provider ────────────────────────────────────────────────
+      - --providers.swarm.endpoint=unix:///var/run/docker.sock
+      - --providers.swarm.exposedByDefault=false
+      - --providers.swarm.network=traefik-public
+
+      # ── Let's Encrypt (HTTP-01) ──────────────────────────────────────────────
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.email=long.n.le@student.lut.fi
+      - --certificatesresolvers.letsencrypt.acme.storage=/certs/acme.json
+
+      # ── Prometheus metrics ───────────────────────────────────────────────────
+      - --metrics.prometheus=true
+      - --metrics.prometheus.entrypoint=traefik-metrics
+      - --metrics.prometheus.addEntryPointsLabels=true
+      - --metrics.prometheus.addServicesLabels=true
+      - --metrics.prometheus.addRoutersLabels=true
+      - --entrypoints.traefik-metrics.address=:8082
+
+      # ── Access logs ──────────────────────────────────────────────────────────
+      - --accesslog=true
+      - --log.level=INFO
+
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: udp
+        mode: host
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-certs:/certs
+
+    networks:
+      - traefik-public
+
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik-public
+
+        # ── Dashboard router ───────────────────────────────────────────────────
+        # Accessible at: https://lut.longle77.site/traefik/dashboard/
+        - traefik.http.routers.traefik-dashboard.rule=Host(`lut.longle77.site`) && PathPrefix(`/traefik`)
+        - traefik.http.routers.traefik-dashboard.entrypoints=websecure
+        - traefik.http.routers.traefik-dashboard.tls=true
+        - traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt
+        - traefik.http.routers.traefik-dashboard.service=api@internal
+        - traefik.http.routers.traefik-dashboard.middlewares=traefik-auth,traefik-strip
+
+        # ── Strip /traefik prefix before forwarding to api@internal ───────────
+        - traefik.http.middlewares.traefik-strip.stripprefix.prefixes=/traefik
+
+        # ── Basic-auth middleware (generate hash with deploy.sh --gen-password) ─
+        # Replace the value below with: echo $(htpasswd -nB admin) | sed 's/\$/\$\$/g'
+        - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:admin"
+        - traefik.http.services.traefik-dashboard-svc.loadbalancer.server.port=8080

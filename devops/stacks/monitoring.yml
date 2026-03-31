@@ -1,0 +1,180 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Monitoring stack: Prometheus + Grafana + Node Exporter + cAdvisor
+# Paths:
+#   https://lut.longle77.site/prometheus  (basic-auth protected)
+#   https://lut.longle77.site/grafana
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  traefik-public:
+    external: true
+  monitoring:
+    external: true
+
+volumes:
+  prometheus-data:
+    name: prometheus-data
+  grafana-data:
+    name: grafana-data
+
+configs:
+  prometheus-config-v1:
+    file: ../configs/prometheus/prometheus.yml
+  grafana-ds-config-v3:
+    file: ../configs/grafana/provisioning/datasources/prometheus.yml
+  grafana-dashboard-config-v1:
+    file: ../configs/grafana/provisioning/dashboards/dashboard.yml
+  grafana-dash-node-exporter-v2:
+    file: ../configs/grafana/dashboards/node-exporter-full.json
+  grafana-dash-cadvisor-v2:
+    file: ../configs/grafana/dashboards/cadvisor.json
+  grafana-dash-traefik-v2:
+    file: ../configs/grafana/dashboards/traefik.json
+  grafana-dash-loki-logs-v4:
+    file: ../configs/grafana/dashboards/loki-docker-logs.json
+
+services:
+  # ── Prometheus ───────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.console.libraries=/usr/share/prometheus/console_libraries
+      - --web.console.templates=/usr/share/prometheus/consoles
+      - --web.enable-lifecycle
+      - --web.enable-admin-api
+      # Serve all Prometheus routes under /prometheus so path routing works
+      - --web.external-url=https://lut.longle77.site/prometheus
+      - --web.route-prefix=/prometheus
+    configs:
+      - source: prometheus-config-v1
+        target: /etc/prometheus/prometheus.yml
+    volumes:
+      - prometheus-data:/prometheus
+    networks:
+      - traefik-public
+      - monitoring
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik-public
+
+        # ── Router ─────────────────────────────────────────────────────────────
+        # Accessible at: https://lut.longle77.site/prometheus
+        - traefik.http.routers.prometheus.rule=Host(`lut.longle77.site`) && PathPrefix(`/prometheus`)
+        - traefik.http.routers.prometheus.entrypoints=websecure
+        - traefik.http.routers.prometheus.tls=true
+        - traefik.http.routers.prometheus.tls.certresolver=letsencrypt
+        - traefik.http.routers.prometheus.middlewares=prometheus-auth
+
+        # ── Basic auth (same password generator as Traefik dashboard) ──────────
+        - "traefik.http.middlewares.prometheus-auth.basicauth.users=admin:$$2y$$05$$placeholder.replace.this.with.real.hash"
+
+        # ── Backend service ────────────────────────────────────────────────────
+        - traefik.http.services.prometheus.loadbalancer.server.port=9090
+
+  # ── Grafana ──────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SERVER_ROOT_URL: https://lut.longle77.site/grafana
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SECURITY_ADMIN_USER: admin
+      # Set via Docker secret or change before deploying
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/node-exporter-full.json
+    secrets:
+      - grafana_admin_password
+    configs:
+      - source: grafana-ds-config-v3
+        target: /etc/grafana/provisioning/datasources/prometheus.yml
+      - source: grafana-dashboard-config-v1
+        target: /etc/grafana/provisioning/dashboards/dashboard.yml
+      - source: grafana-dash-node-exporter-v2
+        target: /var/lib/grafana/dashboards/node-exporter-full.json
+      - source: grafana-dash-cadvisor-v2
+        target: /var/lib/grafana/dashboards/cadvisor.json
+      - source: grafana-dash-traefik-v2
+        target: /var/lib/grafana/dashboards/traefik.json
+      - source: grafana-dash-loki-logs-v4
+        target: /var/lib/grafana/dashboards/loki-docker-logs.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - traefik-public
+      - monitoring
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik-public
+
+        # ── Router ─────────────────────────────────────────────────────────────
+        # Accessible at: https://lut.longle77.site/grafana
+        - traefik.http.routers.grafana.rule=Host(`lut.longle77.site`) && PathPrefix(`/grafana`)
+        - traefik.http.routers.grafana.entrypoints=websecure
+        - traefik.http.routers.grafana.tls=true
+        - traefik.http.routers.grafana.tls.certresolver=letsencrypt
+
+        # ── Backend service ────────────────────────────────────────────────────
+        - traefik.http.services.grafana.loadbalancer.server.port=3000
+
+  # ── Node Exporter (global — one per swarm node) ──────────────────────────────
+  node-exporter:
+    image: prom/node-exporter:latest
+    command:
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - monitoring
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+  # ── cAdvisor (global — one per swarm node) ───────────────────────────────────
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    command:
+      - --docker_only=true
+      - --store_container_labels=false
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    networks:
+      - monitoring
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+secrets:
+  grafana_admin_password:
+    external: true

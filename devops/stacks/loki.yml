@@ -1,0 +1,58 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Loki stack — log aggregation + Promtail log collector
+# Grafana datasource: http://loki:3100 (internal, on monitoring network)
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  monitoring:
+    external: true
+
+volumes:
+  loki-data:
+    name: loki-data
+
+configs:
+  loki-config-v1:
+    file: ../configs/loki/loki-config.yml
+  promtail-config-v1:
+    file: ../configs/promtail/promtail-config.yml
+
+services:
+  # ── Loki — log storage & query engine ────────────────────────────────────────
+  loki:
+    image: grafana/loki:latest
+    command: -config.file=/etc/loki/loki-config.yml
+    configs:
+      - source: loki-config-v1
+        target: /etc/loki/loki-config.yml
+    volumes:
+      - loki-data:/loki
+    networks:
+      - monitoring
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+  # ── Promtail — log collector (global: one per swarm node) ────────────────────
+  promtail:
+    image: grafana/promtail:latest
+    command: -config.file=/etc/promtail/promtail-config.yml
+    configs:
+      - source: promtail-config-v1
+        target: /etc/promtail/promtail-config.yml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - monitoring
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 5s
