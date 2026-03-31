@@ -99,7 +99,7 @@ Apply the current Prisma schema to the local PostgreSQL instance:
 npm run prisma:db:push --workspace backend
 ```
 
-You could also use prisma studio instead of this: 
+You could also use prisma studio instead of this:
 
 Inspect data in PostgreSQL:
 
