@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { TaskStatus, TaskPriority } from '@prisma/client';
 import { z } from 'zod';
 
 import { asyncHandler } from '../lib/async-handler.js';
@@ -100,19 +101,26 @@ router.post(
       return;
     }
 
-    const task = await prisma.task.create({
-      data: {
-        courseId,
-        title,
-        description,
-        deadline: deadline ?? undefined,
-        estimatedHours: estimatedHours ?? 0,
-        actualHours: actualHours ?? 0,
-        status: status ?? undefined,
-        priority: priority ?? undefined,
-        completedAt: completedAt ?? undefined
-      }
-    });
+    const createData: any = {
+      courseId,
+      title,
+      description,
+      deadline: deadline ?? undefined,
+      estimatedHours: estimatedHours ?? 0,
+      actualHours: actualHours ?? 0,
+      completedAt: completedAt ?? undefined
+    };
+
+    if (status !== undefined) {
+      // map lowercase zod enum values to Prisma enum values (UPPERCASE)
+      createData.status = (status as string).toUpperCase() as TaskStatus;
+    }
+
+    if (priority !== undefined) {
+      createData.priority = (priority as string).toUpperCase() as TaskPriority;
+    }
+
+    const task = await prisma.task.create({ data: createData });
 
     res.status(201).json({ task });
   })
@@ -151,8 +159,14 @@ router.patch(
       updateData.estimatedHours = updates.estimatedHours;
     if (updates.actualHours !== undefined)
       updateData.actualHours = updates.actualHours;
-    if (updates.status !== undefined) updateData.status = updates.status;
-    if (updates.priority !== undefined) updateData.priority = updates.priority;
+    if (updates.status !== undefined)
+      updateData.status = (
+        updates.status as string
+      ).toUpperCase() as TaskStatus;
+    if (updates.priority !== undefined)
+      updateData.priority = (
+        updates.priority as string
+      ).toUpperCase() as TaskPriority;
 
     const task = await prisma.task.update({
       where: { id: taskId },
