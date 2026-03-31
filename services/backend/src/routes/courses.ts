@@ -53,15 +53,10 @@ router.post(
         color,
         code,
         description
-      },
-      include: {
-        tasks: {
-          orderBy: { createdAt: 'asc' }
-        }
       }
     });
 
-    res.status(201).json({ course });
+    res.status(201).json({ course: { ...course, tasks: [] } });
   })
 );
 
@@ -93,14 +88,15 @@ router.patch(
     const updates = updateCourseSchema.parse(req.body);
     const userId = req.auth!.id;
 
-    const existingCourse = await prisma.course.findFirst({
+    const existingCourse = await prisma.course.findMany({
       where: {
         id: courseId,
         userId
-      }
+      },
+      select: { id: true }
     });
 
-    if (!existingCourse) {
+    if (existingCourse.length === 0) {
       res.status(404).json({ message: 'Course not found' });
       return;
     }
@@ -134,17 +130,22 @@ router.delete(
     const { courseId } = routeParamsSchema.parse(req.params);
     const userId = req.auth!.id;
 
-    const deletion = await prisma.course.deleteMany({
+    const existing = await prisma.course.findMany({
       where: {
         id: courseId,
         userId
-      }
+      },
+      select: { id: true }
     });
 
-    if (deletion.count === 0) {
+    if (existing.length === 0) {
       res.status(404).json({ message: 'Course not found' });
       return;
     }
+
+    await prisma.course.delete({
+      where: { id: courseId }
+    });
 
     res.status(204).send();
   })
