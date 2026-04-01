@@ -50,11 +50,24 @@ jobs:
         working-directory: services/python-service
         run: pip install -r requirements.txt
 
-      - name: Build frontend image
-        run: docker build -t frontend:ci ./services/frontend
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build backend image
-        run: docker build -t backend:ci ./services/backend
+      - name: Build and push frontend image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/lut:frontend-latest ./services/frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/lut:frontend-latest
 
-      - name: Build python service image
-        run: docker build -t python-service:ci ./services/python-service
+      - name: Build and push backend image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/lut:backend-latest ./services/backend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/lut:backend-latest
+
+      # - name: Build python service image
+      #   run: docker build -t python-service:ci ./services/python-service
+
+      - name: Trigger Portainer redeploy
+        run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"

@@ -1,0 +1,31 @@
+version: "3.9"
+
+networks:
+  traefik-public:
+    external: true
+  internal:
+    driver: overlay
+
+services:
+  frontend:
+    image: hoanglut97/lut:frontend-latest
+    networks:
+      - traefik-public
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.frontend.rule=Host(`lut.longle77.site`)
+        - traefik.http.services.frontend.loadbalancer.server.port=80
+
+  backend:
+    image: hoanglut97/lut:backend-latest
+    environment:
+      NODE_ENV: production
+    networks:
+      - traefik-public
+      - internal
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.backend.rule=Host(`lut.longle77.site`)
+        - traefik.http.services.backend.loadbalancer.server.port=8888
