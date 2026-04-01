@@ -71,7 +71,7 @@ services:
       - internal
 
   postgres:
-    image: postgres:16-alpine
+    image: ibtek/smart-study-planner-db:latest
     environment:
       POSTGRES_DB: app
       POSTGRES_USER: app
