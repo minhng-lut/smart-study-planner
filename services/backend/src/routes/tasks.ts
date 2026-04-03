@@ -183,19 +183,24 @@ router.delete(
     const { taskId } = taskRouteParamsSchema.parse(req.params);
     const userId = req.auth!.id;
 
-    const deletion = await prisma.task.deleteMany({
+    const existing = await prisma.task.findFirst({
       where: {
         id: taskId,
         course: {
           userId
         }
-      }
+      },
+      select: { id: true }
     });
 
-    if (deletion.count === 0) {
+    if (!existing) {
       res.status(404).json({ message: 'Task not found' });
       return;
     }
+
+    await prisma.task.delete({
+      where: { id: taskId }
+    });
 
     res.status(204).send();
   })
@@ -227,22 +232,21 @@ router.get(
     const { taskId } = taskRouteParamsSchema.parse(req.params);
     const userId = req.auth!.id;
 
-    const task = await prisma.task.findMany({
+    const task = await prisma.task.findFirst({
       where: {
         id: taskId,
         course: {
           userId
         }
-      },
-      take: 1
+      }
     });
 
-    if (task.length === 0) {
+    if (!task) {
       res.status(404).json({ message: 'Task not found' });
       return;
     }
 
-    res.json({ task: task[0] });
+    res.json({ task });
   })
 );
 
