@@ -116,7 +116,7 @@ function SettingsPage() {
             </div>
             <div>
               <p className="text-lg font-semibold capitalize text-[var(--study-ink-strong)]">
-                {user?.role ?? 'user'}
+                {user?.role ?? 'student'}
               </p>
               <p className="mt-2 text-sm leading-6 text-[var(--study-copy-muted)]">
                 Your role controls which planner areas and management actions

@@ -1,17 +1,26 @@
 import type { CSSProperties } from 'react';
 
 import { Link } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import { BookOpenText, ClipboardList } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { usePlannerStore } from '@/stores/planner-store';
+import { listCourses } from '@/lib/courses-api';
 
 function App() {
-  const courses = usePlannerStore((state) => state.courses);
+  const coursesQuery = useQuery({
+    queryKey: ['courses'],
+    queryFn: listCourses
+  });
+  const courses = coursesQuery.data?.courses ?? [];
   const totalTasks = courses.reduce(
     (count, course) => count + course.tasks.length,
     0
   );
+
+  function getCourseColor(color: string | null) {
+    return color ?? '#4f46e5';
+  }
 
   function createMotionStyle(delay: number): CSSProperties {
     return {
@@ -89,8 +98,8 @@ function App() {
               {courses.map((course, index) => (
                 <Link
                   key={course.id}
-                  to="/courses/$courseSlug"
-                  params={{ courseSlug: course.slug }}
+                  to="/courses/$courseId"
+                  params={{ courseId: String(course.id) }}
                   className="motion-enter motion-task-row flex items-center justify-between gap-4 py-5 transition-opacity hover:opacity-75"
                   style={createMotionStyle(500 + index * 70)}
                 >
@@ -98,7 +107,9 @@ function App() {
                     <div className="flex items-center gap-3">
                       <span
                         className="inline-flex size-3 shrink-0 rounded-full"
-                        style={{ backgroundColor: course.color }}
+                        style={{
+                          backgroundColor: getCourseColor(course.color)
+                        }}
                       />
                       <p className="truncate text-lg font-semibold text-[var(--study-ink-strong)]">
                         {course.name}

@@ -15,8 +15,8 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 
 import { AppSidebar } from '@/components/app-sidebar';
 import { getCurrentUser, logout } from '@/lib/auth-api';
+import { listCourses } from '@/lib/courses-api';
 import { useAuthStore } from '@/stores/auth-store';
-import { usePlannerStore } from '@/stores/planner-store';
 
 import App from './App';
 import {
@@ -63,13 +63,19 @@ function ProtectedAppLayout() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
-  const courses = usePlannerStore((state) => state.courses);
 
   const meQuery = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: getCurrentUser,
     enabled: Boolean(accessToken)
   });
+
+  const coursesQuery = useQuery({
+    queryKey: ['courses'],
+    queryFn: listCourses,
+    enabled: Boolean(accessToken)
+  });
+  const courses = coursesQuery.data?.courses ?? [];
 
   const logoutMutation = useMutation({
     mutationFn: logout,
@@ -110,13 +116,8 @@ function ProtectedAppLayout() {
               href,
               label:
                 href.startsWith('/courses/') && index === 1
-                  ? (courses.find((course) => course.slug === segment)?.name ??
-                    segment
-                      .split('-')
-                      .map(
-                        (part) => part.charAt(0).toUpperCase() + part.slice(1)
-                      )
-                      .join(' '))
+                  ? (courses.find((course) => String(course.id) === segment)
+                      ?.name ?? `Course ${segment}`)
                   : (routeLabels[href] ??
                     segment
                       .split('-')
@@ -226,7 +227,7 @@ const settingsRoute = createRoute({
 
 const courseRoute = createRoute({
   getParentRoute: () => protectedRoute,
-  path: '/courses/$courseSlug',
+  path: '/courses/$courseId',
   component: CoursePage
 });
 
