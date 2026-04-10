@@ -1,5 +1,5 @@
+import type { Prisma, TaskPriority, TaskStatus } from '@prisma/client';
 import { Router } from 'express';
-import type { TaskStatus, TaskPriority, Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 import { asyncHandler } from '../lib/async-handler.js';
@@ -183,25 +183,14 @@ router.delete(
     const { taskId } = taskRouteParamsSchema.parse(req.params);
     const userId = req.auth!.id;
 
-    const existing = await prisma.task.findFirst({
+    const deletion = await prisma.task.delete({
       where: {
         id: taskId,
         course: {
           userId
         }
-      },
-      select: { id: true }
+      }
     });
-
-    if (!existing) {
-      res.status(404).json({ message: 'Task not found' });
-      return;
-    }
-
-    await prisma.task.delete({
-      where: { id: taskId }
-    });
-
     res.status(204).send();
   })
 );
@@ -232,7 +221,7 @@ router.get(
     const { taskId } = taskRouteParamsSchema.parse(req.params);
     const userId = req.auth!.id;
 
-    const task = await prisma.task.findFirst({
+    const task = await prisma.task.findUnique({
       where: {
         id: taskId,
         course: {
@@ -246,7 +235,7 @@ router.get(
       return;
     }
 
-    res.json({ task });
+    res.json({ task: task });
   })
 );
 

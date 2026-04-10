@@ -2,11 +2,26 @@ import { useAuthStore } from '@/stores/auth-store';
 
 import { ApiError, refreshSession } from './auth-api';
 
+export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
+export type TaskStatusInput =
+  | 'pending'
+  | 'in_progress'
+  | 'completed'
+  | 'overdue';
+export type TaskPriorityInput = 'low' | 'medium' | 'high';
+
 export type Task = {
   id: number;
   courseId: number;
   title: string;
   description: string | null;
+  deadline: string | null;
+  estimatedHours: string;
+  actualHours: string;
+  status: TaskStatus;
+  priority: TaskPriority | null;
+  completedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -15,10 +30,27 @@ type TaskResponse = {
   task: Task;
 };
 
-type CreateTaskPayload = {
+export type CreateTaskPayload = {
   courseId: number;
   title: string;
   description?: string;
+  deadline: string;
+  estimatedHours: string | number;
+  actualHours?: string | number;
+  status?: TaskStatusInput;
+  priority?: TaskPriorityInput;
+  completedAt?: string;
+};
+
+export type UpdateTaskPayload = {
+  title?: string;
+  description?: string | null;
+  deadline?: string | null;
+  estimatedHours?: string | number;
+  actualHours?: string | number;
+  status?: TaskStatusInput;
+  priority?: TaskPriorityInput | null;
+  completedAt?: string | null;
 };
 
 type ApiErrorPayload = {
@@ -28,6 +60,14 @@ type ApiErrorPayload = {
 
 function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   return typeof value === 'object' && value !== null;
+}
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
+).replace(/\/$/, '');
+
+function buildApiUrl(path: string) {
+  return `${API_BASE_URL}${path}`;
 }
 
 async function parseResponseBody(response: Response): Promise<unknown> {
@@ -51,7 +91,7 @@ async function tasksApiRequest<T>(
 ): Promise<T> {
   const accessToken = useAuthStore.getState().accessToken;
 
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     ...init,
     headers: {
       ...(init.headers ?? {}),
@@ -88,6 +128,16 @@ async function tasksApiRequest<T>(
 export function createTask(payload: CreateTaskPayload) {
   return tasksApiRequest<TaskResponse>('/tasks', {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateTask(taskId: number, payload: UpdateTaskPayload) {
+  return tasksApiRequest<TaskResponse>(`/tasks/${taskId}`, {
+    method: 'PATCH',
     headers: {
       'Content-Type': 'application/json'
     },

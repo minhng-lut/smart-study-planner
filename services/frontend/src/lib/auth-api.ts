@@ -31,6 +31,12 @@ export class ApiError extends Error {
 
 let refreshPromise: Promise<AuthResponse> | null = null;
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+
+function buildApiUrl(path: string) {
+  return `${API_BASE_URL}${path}`;
+}
+
 function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   return typeof value === 'object' && value !== null;
 }
@@ -84,7 +90,7 @@ async function refreshSession(): Promise<AuthResponse> {
 
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const response = await fetch('/api/auth/refresh', {
+      const response = await fetch(buildApiUrl('/auth/refresh'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -132,7 +138,7 @@ async function apiRequest<T>(
   }: ApiRequestOptions = {}
 ): Promise<T> {
   const accessToken = auth ? useAuthStore.getState().accessToken : null;
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     ...init,
     headers: createHeaders(body, headers, accessToken ?? undefined),
     body:

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
+import { toast } from 'sonner';
 import {
   ArrowRight,
   KeyRound,
@@ -19,6 +20,7 @@ import {
   logout,
   refreshSession
 } from '@/lib/auth-api';
+import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { useAuthStore } from '@/stores/auth-store';
 
 function AccountPage() {
@@ -38,17 +40,25 @@ function AccountPage() {
   const refreshMutation = useMutation({
     mutationFn: refreshSession,
     onSuccess: (session) => {
+      toast.success('Session refreshed');
       queryClient.setQueryData(['auth', 'me'], {
         user: session.user
       });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to refresh session'));
     }
   });
 
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: async () => {
+      toast.success('Signed out successfully');
       queryClient.removeQueries({ queryKey: ['auth'] });
       await navigate({ to: '/auth' });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to sign out'));
     }
   });
 
