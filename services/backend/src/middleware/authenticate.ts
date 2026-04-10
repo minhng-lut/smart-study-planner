@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 
+import { ACCESS_TOKEN_COOKIE, getCookie } from '../lib/cookies.js';
 import { verifyAccessToken } from '../lib/tokens.js';
 
 export function authenticateAccessToken(
@@ -8,15 +9,14 @@ export function authenticateAccessToken(
   next: NextFunction
 ): void {
   const authorization = req.header('authorization');
+  const token = authorization?.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length)
+    : getCookie(req, ACCESS_TOKEN_COOKIE);
 
-  if (!authorization?.startsWith('Bearer ')) {
-    res
-      .status(401)
-      .json({ message: 'Missing or invalid authorization header' });
+  if (!token) {
+    res.status(401).json({ message: 'Missing authentication token' });
     return;
   }
-
-  const token = authorization.slice('Bearer '.length);
 
   try {
     const payload = verifyAccessToken(token);

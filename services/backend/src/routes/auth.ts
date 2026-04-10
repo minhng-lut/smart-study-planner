@@ -3,6 +3,11 @@ import { Router, type Response } from 'express';
 import { z } from 'zod';
 
 import { asyncHandler } from '../lib/async-handler.js';
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  getCookie
+} from '../lib/cookies.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import {
   decodeRefreshTokenExpiry,
@@ -27,10 +32,6 @@ const registerSchema = loginSchema.extend({
   fullName: z.string().trim().min(1).max(100).optional()
 });
 
-const refreshSchema = z.object({
-  refreshToken: z.string().min(1)
-});
-
 function deriveFullName(email: string): string {
   const localPart = email.split('@')[0] ?? 'Study Planner User';
 
@@ -50,6 +51,41 @@ function serializeUser(user: Pick<User, 'id' | 'fullName' | 'email' | 'role'>) {
     email: user.email,
     role: toAuthRole(user.role)
   };
+}
+
+function getCookieMaxAge(token: string) {
+  return Math.max(decodeRefreshTokenExpiry(token).getTime() - Date.now(), 0);
+}
+
+function setAuthCookies(
+  res: Response,
+  accessToken: string,
+  refreshToken: string
+) {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/'
+  };
+
+  res.cookie(ACCESS_TOKEN_COOKIE, accessToken, cookieOptions);
+  res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
+    ...cookieOptions,
+    maxAge: getCookieMaxAge(refreshToken)
+  });
+}
+
+function clearAuthCookies(res: Response) {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/'
+  };
+
+  res.clearCookie(ACCESS_TOKEN_COOKIE, cookieOptions);
+  res.clearCookie(REFRESH_TOKEN_COOKIE, cookieOptions);
 }
 
 async function issueTokenPair(
@@ -82,10 +118,10 @@ function sendAuthResponse(
   refreshToken: string,
   statusCode = 200
 ) {
+  setAuthCookies(res, accessToken, refreshToken);
+
   res.status(statusCode).json({
-    user: serializeUser(user),
-    accessToken,
-    refreshToken
+    user: serializeUser(user)
   });
 }
 
@@ -143,7 +179,12 @@ router.post(
 router.post(
   '/refresh',
   asyncHandler(async (req, res) => {
-    const { refreshToken } = refreshSchema.parse(req.body);
+    const refreshToken = getCookie(req, REFRESH_TOKEN_COOKIE);
+
+    if (!refreshToken) {
+      res.status(401).json({ message: 'Refresh token is not available' });
+      return;
+    }
 
     let payload;
 
@@ -194,18 +235,21 @@ router.post(
 router.post(
   '/logout',
   asyncHandler(async (req, res) => {
-    const { refreshToken } = refreshSchema.parse(req.body);
+    const refreshToken = getCookie(req, REFRESH_TOKEN_COOKIE);
 
-    await prisma.refreshToken.updateMany({
-      where: {
-        tokenHash: hashToken(refreshToken),
-        revokedAt: null
-      },
-      data: {
-        revokedAt: new Date()
-      }
-    });
+    if (refreshToken) {
+      await prisma.refreshToken.updateMany({
+        where: {
+          tokenHash: hashToken(refreshToken),
+          revokedAt: null
+        },
+        data: {
+          revokedAt: new Date()
+        }
+      });
+    }
 
+    clearAuthCookies(res);
     res.status(204).send();
   })
 );

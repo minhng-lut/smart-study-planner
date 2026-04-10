@@ -183,7 +183,7 @@ router.delete(
     const { taskId } = taskRouteParamsSchema.parse(req.params);
     const userId = req.auth!.id;
 
-    const deletion = await prisma.task.delete({
+    await prisma.task.delete({
       where: {
         id: taskId,
         course: {

@@ -89,14 +89,10 @@ async function tasksApiRequest<T>(
   init: RequestInit = {},
   retryOnUnauthorized = true
 ): Promise<T> {
-  const accessToken = useAuthStore.getState().accessToken;
-
   const response = await fetch(buildApiUrl(path), {
     ...init,
-    headers: {
-      ...(init.headers ?? {}),
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-    }
+    credentials: 'include',
+    headers: init.headers
   });
 
   if (response.status === 401 && retryOnUnauthorized) {
