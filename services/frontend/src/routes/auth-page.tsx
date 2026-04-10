@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type FormEvent } from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import { toast } from 'sonner';
 import {
   BarChart3,
   BookOpen,
@@ -14,7 +15,8 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { ApiError, login, register } from '@/lib/auth-api';
+import { login, register } from '@/lib/auth-api';
+import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { useAuthStore } from '@/stores/auth-store';
 
 type AuthMode = 'login' | 'register';
@@ -46,21 +48,25 @@ function AuthPage() {
       return mode === 'login' ? login(credentials) : register(credentials);
     },
     onSuccess: async (session) => {
+      toast.success(mode === 'login' ? 'Signed in successfully' : 'Account created successfully');
       setSession(session);
       queryClient.setQueryData(['auth', 'me'], {
         user: session.user
       });
 
       await navigate({ to: '/' });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to complete the request'));
     }
   });
 
   const submitLabel =
     mode === 'login' ? 'Sign in to your planner' : 'Create planner account';
-  const errorMessage =
-    authMutation.error instanceof ApiError
-      ? authMutation.error.message
-      : 'Unable to complete the request';
+  const errorMessage = getApiErrorMessage(
+    authMutation.error,
+    'Unable to complete the request'
+  );
 
   function handleFieldChange(field: keyof FormState, value: string) {
     setFormState((currentState) => ({
