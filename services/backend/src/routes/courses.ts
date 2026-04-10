@@ -69,7 +69,7 @@ router.get(
       where: { userId },
       include: {
         tasks: {
-          orderBy: { createdAt: 'asc' }
+          orderBy: { createdAt: 'desc' }
         }
       },
       orderBy: {
@@ -115,7 +115,7 @@ router.patch(
       },
       include: {
         tasks: {
-          orderBy: { createdAt: 'asc' }
+          orderBy: { createdAt: 'desc' }
         }
       }
     });

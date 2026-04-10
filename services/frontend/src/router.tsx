@@ -12,9 +12,11 @@ import {
   useRouterState
 } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
+import { toast } from 'sonner';
 
 import { AppSidebar } from '@/components/app-sidebar';
 import { getCurrentUser, logout } from '@/lib/auth-api';
+import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { listCourses } from '@/lib/courses-api';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -34,6 +36,7 @@ import {
   SidebarTrigger
 } from './components/ui/sidebar';
 import AuthPage from './routes/auth-page';
+import CalendarPage from './routes/calendar-page';
 import CoursePage from './routes/course-page';
 import SettingsPage from './routes/settings-page';
 
@@ -80,8 +83,12 @@ function ProtectedAppLayout() {
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: async () => {
+      toast.success('Signed out successfully');
       queryClient.removeQueries({ queryKey: ['auth'] });
       await navigate({ to: '/login' });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to sign out'));
     }
   });
 
@@ -100,6 +107,7 @@ function ProtectedAppLayout() {
   const currentUser = meQuery.data?.user ?? user;
   const routeLabels: Record<string, string> = {
     '/': 'Dashboard',
+    '/calendar': 'Calendar',
     '/courses': 'Courses',
     '/settings': 'Settings'
   };
@@ -219,6 +227,12 @@ const dashboardRoute = createRoute({
   component: App
 });
 
+const calendarRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: '/calendar',
+  component: CalendarPage
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: '/settings',
@@ -234,7 +248,12 @@ const courseRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   loginRoute,
   legacyAuthRoute,
-  protectedRoute.addChildren([dashboardRoute, settingsRoute, courseRoute])
+  protectedRoute.addChildren([
+    dashboardRoute,
+    calendarRoute,
+    settingsRoute,
+    courseRoute
+  ])
 ]);
 
 export const router = createRouter({ routeTree });

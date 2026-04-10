@@ -10,11 +10,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost',
+        target: 'http://localhost:3000',
         changeOrigin: true
       },
       '/python': {
-        target: 'http://localhost',
+        target: 'http://localhost:8000',
         changeOrigin: true
       }
     }

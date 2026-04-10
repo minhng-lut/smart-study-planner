@@ -1,4 +1,4 @@
-import { BookMarked, ChartColumnBig, Settings2 } from 'lucide-react';
+import { BookMarked, CalendarDays, ChartColumnBig, Settings2 } from 'lucide-react';
 
 import { NavCourses } from '@/components/nav-courses';
 import { NavMain } from '@/components/nav-main';
@@ -26,6 +26,11 @@ const mainNavigation = [
     title: 'Dashboard',
     url: '/',
     icon: ChartColumnBig
+  },
+  {
+    title: 'Calendar',
+    url: '/calendar',
+    icon: CalendarDays
   },
   {
     title: 'Settings',
