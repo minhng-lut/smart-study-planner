@@ -63,7 +63,9 @@ function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   return typeof value === 'object' && value !== null;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
+).replace(/\/$/, '');
 
 function buildApiUrl(path: string) {
   return `${API_BASE_URL}${path}`;
@@ -88,14 +90,10 @@ async function coursesApiRequest<T>(
   init: RequestInit = {},
   retryOnUnauthorized = true
 ): Promise<T> {
-  const accessToken = useAuthStore.getState().accessToken;
-
   const response = await fetch(buildApiUrl(path), {
     ...init,
-    headers: {
-      ...(init.headers ?? {}),
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-    }
+    credentials: 'include',
+    headers: init.headers
   });
 
   if (response.status === 401 && retryOnUnauthorized) {

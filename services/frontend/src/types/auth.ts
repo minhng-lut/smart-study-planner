@@ -13,14 +13,8 @@ export type Credentials = {
 
 export type AuthResponse = {
   user: AuthUser;
-  accessToken: string;
-  refreshToken: string;
 };
 
 export type CurrentUserResponse = {
   user: AuthUser;
-};
-
-export type AdminAccessResponse = {
-  message: string;
 };
