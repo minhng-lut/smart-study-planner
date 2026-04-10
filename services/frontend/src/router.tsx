@@ -63,20 +63,19 @@ function ProtectedAppLayout() {
   const pathname = useRouterState({
     select: (state) => state.location.pathname
   });
-  const accessToken = useAuthStore((state) => state.accessToken);
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
 
   const meQuery = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: getCurrentUser,
-    enabled: Boolean(accessToken)
+    enabled: Boolean(user)
   });
 
   const coursesQuery = useQuery({
     queryKey: ['courses'],
     queryFn: listCourses,
-    enabled: Boolean(accessToken)
+    enabled: Boolean(user)
   });
   const courses = coursesQuery.data?.courses ?? [];
 
@@ -99,10 +98,11 @@ function ProtectedAppLayout() {
   }, [meQuery.data, setUser]);
 
   useEffect(() => {
-    if (!accessToken) {
+    if (!user || meQuery.isError) {
+      useAuthStore.getState().clearSession();
       void navigate({ to: '/login' });
     }
-  }, [accessToken, navigate]);
+  }, [meQuery.isError, navigate, user]);
 
   const currentUser = meQuery.data?.user ?? user;
   const routeLabels: Record<string, string> = {
@@ -187,6 +187,24 @@ function ProtectedAppLayout() {
   );
 }
 
+async function ensureAuthenticatedUser() {
+  const authStore = useAuthStore.getState();
+
+  if (authStore.user) {
+    return authStore.user;
+  }
+
+  try {
+    const { user } = await getCurrentUser();
+    authStore.setUser(user);
+
+    return user;
+  } catch {
+    authStore.clearSession();
+    throw redirect({ to: '/login' });
+  }
+}
+
 const rootRoute = createRootRoute({
   component: RootLayout
 });
@@ -194,10 +212,20 @@ const rootRoute = createRootRoute({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
-  beforeLoad: () => {
-    if (useAuthStore.getState().accessToken) {
+  beforeLoad: async () => {
+    if (useAuthStore.getState().user) {
       throw redirect({ to: '/' });
     }
+
+    try {
+      const { user } = await getCurrentUser();
+      useAuthStore.getState().setUser(user);
+    } catch {
+      useAuthStore.getState().clearSession();
+      return;
+    }
+
+    throw redirect({ to: '/' });
   },
   component: AuthPage
 });
@@ -213,10 +241,8 @@ const legacyAuthRoute = createRoute({
 const protectedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'app',
-  beforeLoad: () => {
-    if (!useAuthStore.getState().accessToken) {
-      throw redirect({ to: '/login' });
-    }
+  beforeLoad: async () => {
+    await ensureAuthenticatedUser();
   },
   component: ProtectedAppLayout
 });
