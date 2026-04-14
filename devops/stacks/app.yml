@@ -8,7 +8,11 @@ networks:
 
 services:
   db:
-    image: hoanglut97/lut-db:latest
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
     networks:
       - internal
     volumes:
@@ -20,24 +24,24 @@ services:
     image: hoanglut97/lut-frontend:latest
     networks:
       - traefik-public
+      - internal
     deploy:
       labels:
         - traefik.enable=true
         - traefik.http.routers.frontend.rule=Host(`lut.longle77.site`)
         - traefik.http.services.frontend.loadbalancer.server.port=80
+        - traefik.docker.network=traefik-public
 
   backend:
     image: hoanglut97/lut-backend:latest
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://app:app@db:5432/app?schema=public
+    command: ['sh', '-lc', 'npx prisma migrate deploy && npm start']
     networks:
       - internal
     deploy:
-      labels:
-        - traefik.enable=true
-        - traefik.http.routers.backend.rule=Host(`lut.longle77.site`)
-        - traefik.http.services.backend.loadbalancer.server.port=8888
+      replicas: 1
 
 volumes:
   db_data:
