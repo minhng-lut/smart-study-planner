@@ -34,7 +34,10 @@ const jwtAccessSecret =
 const jwtRefreshSecret =
   baseEnv.JWT_REFRESH_SECRET ?? readSecretFile(baseEnv.JWT_REFRESH_SECRET_FILE);
 
-if (baseEnv.NODE_ENV === 'production' && (!jwtAccessSecret || !jwtRefreshSecret)) {
+if (
+  baseEnv.NODE_ENV === 'production' &&
+  (!jwtAccessSecret || !jwtRefreshSecret)
+) {
   throw new Error(
     'Invalid environment variables: provide JWT_ACCESS_SECRET/JWT_REFRESH_SECRET or *_FILE variants in production'
   );
