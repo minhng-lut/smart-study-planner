@@ -47,7 +47,12 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://app:app@db:5432/app?schema=public
+      JWT_ACCESS_SECRET_FILE: /run/secrets/jwt_access_secret
+      JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
     command: ['sh', '-lc', 'npx prisma migrate deploy && npm start']
+    secrets:
+      - jwt_access_secret
+      - jwt_refresh_secret
     networks:
       - traefik-public
       - internal
@@ -66,3 +71,9 @@ services:
 
 volumes:
   db_data:
+
+secrets:
+  jwt_access_secret:
+    external: true
+  jwt_refresh_secret:
+    external: true
