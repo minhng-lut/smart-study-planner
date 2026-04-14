@@ -24,8 +24,13 @@ function TasksPage() {
   const courseById = new Map(courses.map((course) => [course.id, course]));
 
   const updateTaskMutation = useMutation({
-    mutationFn: ({ taskId, status }: { taskId: number; status: 'pending' | 'in_progress' | 'completed' | 'overdue' }) =>
-      updateTask(taskId, { status }),
+    mutationFn: ({
+      taskId,
+      status
+    }: {
+      taskId: number;
+      status: 'pending' | 'in_progress' | 'completed' | 'overdue';
+    }) => updateTask(taskId, { status }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['tasks'] });
       await queryClient.invalidateQueries({ queryKey: ['courses'] });
@@ -39,8 +44,12 @@ function TasksPage() {
   }
 
   const sortedTasks = [...tasks].sort((a, b) => {
-    const aDeadline = a.deadline ? new Date(a.deadline).getTime() : Number.POSITIVE_INFINITY;
-    const bDeadline = b.deadline ? new Date(b.deadline).getTime() : Number.POSITIVE_INFINITY;
+    const aDeadline = a.deadline
+      ? new Date(a.deadline).getTime()
+      : Number.POSITIVE_INFINITY;
+    const bDeadline = b.deadline
+      ? new Date(b.deadline).getTime()
+      : Number.POSITIVE_INFINITY;
     if (aDeadline !== bDeadline) return aDeadline - bDeadline;
     return b.createdAt.localeCompare(a.createdAt);
   });
@@ -76,10 +85,7 @@ function TasksPage() {
         </div>
       </div>
 
-      <div
-        className="motion-enter"
-        style={createMotionStyle(300)}
-      >
+      <div className="motion-enter" style={createMotionStyle(300)}>
         {sortedTasks.length > 0 ? (
           <div className="grid gap-4">
             {sortedTasks.map((task, index) => {
@@ -112,4 +118,3 @@ function TasksPage() {
 }
 
 export default TasksPage;
-

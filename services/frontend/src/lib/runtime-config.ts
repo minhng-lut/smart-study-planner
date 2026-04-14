@@ -16,4 +16,3 @@ export function getApiBaseUrl(): string {
 
   return '/api/v1';
 }
-

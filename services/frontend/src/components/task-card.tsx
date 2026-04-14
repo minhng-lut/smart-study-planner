@@ -185,16 +185,16 @@ export function TaskCard({
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      {(
-                        ['pending', 'in_progress', 'completed'] as const
-                      ).map((status) => (
-                        <DropdownMenuItem
-                          key={status}
-                          onClick={() => onUpdateStatus?.(task, status)}
-                        >
-                          {capitalizeFirst(status.replace('_', ' '))}
-                        </DropdownMenuItem>
-                      ))}
+                      {(['pending', 'in_progress', 'completed'] as const).map(
+                        (status) => (
+                          <DropdownMenuItem
+                            key={status}
+                            onClick={() => onUpdateStatus?.(task, status)}
+                          >
+                            {capitalizeFirst(status.replace('_', ' '))}
+                          </DropdownMenuItem>
+                        )
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 ) : null}
@@ -206,4 +206,3 @@ export function TaskCard({
     </div>
   );
 }
-

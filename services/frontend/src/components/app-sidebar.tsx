@@ -1,4 +1,9 @@
-import { BookMarked, ChartColumnBig, ClipboardList, Settings2 } from 'lucide-react';
+import {
+  BookMarked,
+  ChartColumnBig,
+  ClipboardList,
+  Settings2
+} from 'lucide-react';
 
 import { NavCourses } from '@/components/nav-courses';
 import { NavMain } from '@/components/nav-main';
