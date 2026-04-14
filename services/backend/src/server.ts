@@ -16,18 +16,18 @@ const app = express();
 
 app.use(express.json());
 
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
-app.get('/docs.json', (_req: Request, res: Response) => {
+app.get('/api/docs.json', (_req: Request, res: Response) => {
   res.json(openApiDocument);
 });
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
-app.use('/auth', authRouter);
-app.use('/courses', coursesRouter);
-app.use('/tasks', tasksRouter);
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
+app.use('/api/auth', authRouter);
+app.use('/api/courses', coursesRouter);
+app.use('/api/tasks', tasksRouter);
 
 app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
   void next;

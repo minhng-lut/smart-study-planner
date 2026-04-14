@@ -10,6 +10,10 @@ const openApiDocument = {
     {
       url: 'http://localhost:3000',
       description: 'Local backend server'
+    },
+    {
+      url: '/api',
+      description: 'Behind Traefik reverse proxy'
     }
   ],
   tags: [{ name: 'Health' }, { name: 'Authentication' }],

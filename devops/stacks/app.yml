@@ -8,7 +8,11 @@ networks:
 
 services:
   db:
-    image: hoanglut97/lut-db:latest
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
     networks:
       - internal
     volumes:
@@ -20,24 +24,54 @@ services:
     image: hoanglut97/lut-frontend:latest
     networks:
       - traefik-public
+      - internal
     deploy:
       labels:
         - traefik.enable=true
-        - traefik.http.routers.frontend.rule=Host(`lut.longle77.site`)
+        # HTTP (80) → HTTPS redirect
+        - traefik.http.routers.frontend-http.rule=Host(`lut.longle77.site`)
+        - traefik.http.routers.frontend-http.entrypoints=web
+        - traefik.http.routers.frontend-http.middlewares=frontend-redirect-to-https
+        - traefik.http.middlewares.frontend-redirect-to-https.redirectscheme.scheme=https
+
+        # HTTPS (443)
+        - traefik.http.routers.frontend.rule=Host(`lut.longle77.site`) && PathPrefix(`/`) && !PathPrefix(`/api`) && !PathPrefix(`/traefik`) && !PathPrefix(`/grafana`) && !PathPrefix(`/prometheus`) && !PathPrefix(`/loki`)
+        - traefik.http.routers.frontend.entrypoints=websecure
+        - traefik.http.routers.frontend.tls=true
+        - traefik.http.routers.frontend.tls.certresolver=letsencrypt
         - traefik.http.services.frontend.loadbalancer.server.port=80
+        - traefik.docker.network=traefik-public
 
   backend:
     image: hoanglut97/lut-backend:latest
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://app:app@db:5432/app?schema=public
+      JWT_ACCESS_SECRET_FILE: /run/secrets/jwt_access_secret
+      JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
+    command: ['sh', '-lc', 'npx prisma migrate deploy && npm start']
+    secrets:
+      - jwt_access_secret
+      - jwt_refresh_secret
     networks:
+      - traefik-public
       - internal
     deploy:
+      replicas: 1
       labels:
         - traefik.enable=true
-        - traefik.http.routers.backend.rule=Host(`lut.longle77.site`)
-        - traefik.http.services.backend.loadbalancer.server.port=8888
+        - traefik.docker.network=traefik-public
+        - traefik.http.routers.backend.rule=Host(`lut.longle77.site`) && PathPrefix(`/api`)
+        - traefik.http.routers.backend.entrypoints=websecure
+        - traefik.http.routers.backend.tls=true
+        - traefik.http.routers.backend.tls.certresolver=letsencrypt
+        - traefik.http.services.backend.loadbalancer.server.port=3000
 
 volumes:
   db_data:
+
+secrets:
+  jwt_access_secret:
+    external: true
+  jwt_refresh_secret:
+    external: true
