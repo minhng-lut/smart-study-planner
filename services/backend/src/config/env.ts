@@ -46,6 +46,7 @@ if (
 
 export const env = {
   ...baseEnv,
+  // These placeholders are only used outside production when secrets are not provided.
   JWT_ACCESS_SECRET:
     jwtAccessSecret ??
     'dev-only-placeholder-dev-only-placeholder-dev-only-placeholder-dev-only-placeholder',
