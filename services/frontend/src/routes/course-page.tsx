@@ -6,10 +6,8 @@ import {
   AlarmClock,
   BookOpenText,
   ClipboardList,
-  Dot,
   Flag,
   Plus,
-  RefreshCcw,
   Timer,
   Trash2
 } from 'lucide-react';
@@ -102,20 +100,6 @@ function CoursePage() {
   const courses = coursesQuery.data?.courses ?? [];
   const course = courses.find((item) => item.id === courseId) ?? null;
 
-  function formatDeadline(value: string) {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-    return date.toLocaleString(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-
   function toOptionalNumber(value: string) {
     const trimmed = value.trim();
     if (!trimmed) return undefined;
@@ -123,48 +107,6 @@ function CoursePage() {
     return Number.isFinite(parsed) ? parsed : undefined;
   }
 
-  function formatHours(value: string | number | null | undefined) {
-    if (value === null || value === undefined) return null;
-    const numeric = typeof value === 'number' ? value : Number(value);
-    if (!Number.isFinite(numeric) || numeric <= 0) return null;
-    return `${numeric}h`;
-  }
-
-  function nextStatus(
-    status: string | null | undefined
-  ): 'pending' | 'in_progress' | 'completed' | 'overdue' {
-    const normalized = status?.toLowerCase() ?? 'pending';
-    switch (normalized) {
-      case 'pending':
-        return 'in_progress';
-      case 'in_progress':
-        return 'completed';
-      case 'completed':
-        return 'pending';
-      case 'overdue':
-        return 'in_progress';
-      default:
-        return 'pending';
-    }
-  }
-
-  function statusLabel(status: string | null | undefined) {
-    return (status ?? 'PENDING').toLowerCase().replace('_', ' ');
-  }
-
-  function statusTone(status: string | null | undefined) {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-        return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
-      case 'in_progress':
-        return 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300';
-      case 'overdue':
-        return 'border-destructive/30 bg-destructive/10 text-destructive';
-      case 'pending':
-      default:
-        return 'border-[var(--study-line)] bg-[var(--study-surface-soft)] text-[var(--study-copy-muted)]';
-    }
-  }
 
   function getPriorityTone(priority: string | null | undefined) {
     switch (priority?.toLowerCase()) {
@@ -179,10 +121,6 @@ function CoursePage() {
     }
   }
 
-  function renderPriorityLabel(priority: string | null | undefined) {
-    if (!priority) return 'Priority: none';
-    return `Priority: ${priority.toLowerCase()}`;
-  }
 
   function createMotionStyle(delay: number): CSSProperties {
     return {
