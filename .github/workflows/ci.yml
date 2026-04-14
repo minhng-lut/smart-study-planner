@@ -74,5 +74,5 @@ jobs:
       # - name: Build python service image
       #   run: docker build -t python-service:ci ./services/python-service
 
-      - name: Trigger Portainer redeploy
-        run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"
+      # - name: Trigger Portainer redeploy
+      #  run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"
