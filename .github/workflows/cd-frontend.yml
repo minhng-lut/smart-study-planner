@@ -6,8 +6,8 @@ on:
       - main
       - production
     paths:
-      - "services/frontend/**"
-      - ".github/workflows/cd-frontend.yml"
+      - 'services/frontend/**'
+      - '.github/workflows/cd-frontend.yml'
   workflow_dispatch: {}
 
 jobs:
@@ -27,4 +27,3 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/lut-frontend:latest ./services/frontend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/lut-frontend:latest
-
