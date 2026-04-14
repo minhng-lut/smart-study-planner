@@ -28,6 +28,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Popover,
   PopoverContent,
@@ -119,6 +120,8 @@ export function NavCourses() {
 
   const [isCoursePopoverOpen, setIsCoursePopoverOpen] = useState(false);
   const [courseName, setCourseName] = useState('');
+  const [courseCode, setCourseCode] = useState('');
+  const [courseDescription, setCourseDescription] = useState('');
   const [courseColor, setCourseColor] = useState<string>(
     COURSE_COLOR_OPTIONS[0]
   );
@@ -135,10 +138,16 @@ export function NavCourses() {
 
     await createCourseMutation.mutateAsync({
       name: normalizedName,
-      color: courseColor
+      color: courseColor,
+      ...(courseCode.trim() ? { code: courseCode.trim() } : {}),
+      ...(courseDescription.trim()
+        ? { description: courseDescription.trim() }
+        : {})
     });
 
     setCourseName('');
+    setCourseCode('');
+    setCourseDescription('');
     setCourseColor(COURSE_COLOR_OPTIONS[0]);
     setIsCoursePopoverOpen(false);
   }
@@ -190,6 +199,8 @@ export function NavCourses() {
           setIsCoursePopoverOpen(open);
           if (!open) {
             setCourseName('');
+            setCourseCode('');
+            setCourseDescription('');
             setCourseColor(COURSE_COLOR_OPTIONS[0]);
           }
         }}
@@ -241,6 +252,42 @@ export function NavCourses() {
                   placeholder="System design"
                   className="h-12 rounded-none border-0 border-b border-[var(--study-line-strong)] bg-transparent px-0 text-base shadow-none focus-visible:border-[var(--study-focus)] focus-visible:ring-0"
                 />
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="course-code"
+                    className="text-[0.68rem] font-medium uppercase tracking-[0.24em] text-[var(--study-kicker)]"
+                  >
+                    Course code
+                  </label>
+                  <Input
+                    id="course-code"
+                    value={courseCode}
+                    onChange={(event) => setCourseCode(event.target.value)}
+                    placeholder="CS-E4190"
+                    className="h-12 rounded-none border-0 border-b border-[var(--study-line-strong)] bg-transparent px-0 text-base shadow-none focus-visible:border-[var(--study-focus)] focus-visible:ring-0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="course-description"
+                    className="text-[0.68rem] font-medium uppercase tracking-[0.24em] text-[var(--study-kicker)]"
+                  >
+                    Description
+                  </label>
+                  <Textarea
+                    id="course-description"
+                    value={courseDescription}
+                    onChange={(event) =>
+                      setCourseDescription(event.target.value)
+                    }
+                    placeholder="What is this course about? Any notes, exam format, links..."
+                    className="min-h-[7rem] rounded-xl border border-[var(--study-line-strong)] bg-transparent"
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -326,6 +373,8 @@ export function NavCourses() {
                   className="rounded-full px-0 text-[var(--study-copy-muted)] hover:bg-transparent hover:text-[var(--study-ink-strong)]"
                   onClick={() => {
                     setCourseName('');
+                    setCourseCode('');
+                    setCourseDescription('');
                     setCourseColor(COURSE_COLOR_OPTIONS[0]);
                     setIsCoursePopoverOpen(false);
                   }}

@@ -36,6 +36,7 @@ import {
 import AuthPage from './routes/auth-page';
 import CoursePage from './routes/course-page';
 import SettingsPage from './routes/settings-page';
+import TasksPage from './routes/tasks-page';
 
 function RootLayout() {
   return (
@@ -101,6 +102,7 @@ function ProtectedAppLayout() {
   const routeLabels: Record<string, string> = {
     '/': 'Dashboard',
     '/courses': 'Courses',
+    '/tasks': 'Tasks',
     '/settings': 'Settings'
   };
   const breadcrumbItems =
@@ -231,10 +233,21 @@ const courseRoute = createRoute({
   component: CoursePage
 });
 
+const tasksRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: '/tasks',
+  component: TasksPage
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   legacyAuthRoute,
-  protectedRoute.addChildren([dashboardRoute, settingsRoute, courseRoute])
+  protectedRoute.addChildren([
+    dashboardRoute,
+    tasksRoute,
+    settingsRoute,
+    courseRoute
+  ])
 ]);
 
 export const router = createRouter({ routeTree });

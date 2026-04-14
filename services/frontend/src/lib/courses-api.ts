@@ -1,12 +1,21 @@
 import { useAuthStore } from '@/stores/auth-store';
 
 import { ApiError, refreshSession } from './auth-api';
+import { getApiBaseUrl } from './runtime-config';
+
+const API_BASE = getApiBaseUrl();
 
 export type CourseTask = {
   id: number;
   courseId: number;
   title: string;
   description: string | null;
+  deadline: string | null;
+  estimatedHours: string;
+  actualHours: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | null;
+  completedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -75,7 +84,7 @@ async function coursesApiRequest<T>(
 ): Promise<T> {
   const accessToken = useAuthStore.getState().accessToken;
 
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       ...(init.headers ?? {}),

@@ -14,20 +14,38 @@ import { tasksRouter } from './routes/tasks.js';
 
 const app = express();
 
+if (env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Requested-With'
+    );
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).send();
+      return;
+    }
+
+    next();
+  });
+}
+
 app.use(express.json());
 
-app.get('/api/health', (_req: Request, res: Response) => {
+app.get('/api/v1/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
-app.get('/api/docs.json', (_req: Request, res: Response) => {
+app.get('/api/v1/docs.json', (_req: Request, res: Response) => {
   res.json(openApiDocument);
 });
 
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
-app.use('/api/auth', authRouter);
-app.use('/api/courses', coursesRouter);
-app.use('/api/tasks', tasksRouter);
+app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/courses', coursesRouter);
+app.use('/api/v1/tasks', tasksRouter);
 
 app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
   void next;

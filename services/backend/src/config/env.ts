@@ -3,6 +3,7 @@ import fs from 'fs';
 import { z } from 'zod';
 
 const envSchema = z.object({
+  ENV: z.enum(['development', 'test', 'production']).optional(),
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
     .default('development'),
@@ -29,13 +30,15 @@ function readSecretFile(path: string | undefined): string | undefined {
 
 const baseEnv = parsedEnv.data;
 
+const effectiveNodeEnv = baseEnv.ENV ?? baseEnv.NODE_ENV;
+
 const jwtAccessSecret =
   baseEnv.JWT_ACCESS_SECRET ?? readSecretFile(baseEnv.JWT_ACCESS_SECRET_FILE);
 const jwtRefreshSecret =
   baseEnv.JWT_REFRESH_SECRET ?? readSecretFile(baseEnv.JWT_REFRESH_SECRET_FILE);
 
 if (
-  baseEnv.NODE_ENV === 'production' &&
+  effectiveNodeEnv === 'production' &&
   (!jwtAccessSecret || !jwtRefreshSecret)
 ) {
   throw new Error(
@@ -45,6 +48,7 @@ if (
 
 export const env = {
   ...baseEnv,
+  NODE_ENV: effectiveNodeEnv,
   // These placeholders are only used outside production when secrets are not provided.
   JWT_ACCESS_SECRET:
     jwtAccessSecret ??

@@ -2,14 +2,28 @@ import { useState, type CSSProperties, type FormEvent } from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
-import { BookOpenText, ClipboardList, Dot, Plus, Trash2 } from 'lucide-react';
+import {
+  AlarmClock,
+  BookOpenText,
+  ClipboardList,
+  Dot,
+  Flag,
+  Plus,
+  RefreshCcw,
+  Timer,
+  Trash2
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
   deleteCourse as deleteCourseRequest,
   listCourses
 } from '@/lib/courses-api';
-import { createTask, deleteTask as deleteTaskRequest } from '@/lib/tasks-api';
+import {
+  createTask,
+  deleteTask as deleteTaskRequest,
+  updateTask
+} from '@/lib/tasks-api';
 import {
   Dialog,
   DialogContent,
@@ -19,11 +33,15 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { TaskCard } from '@/components/task-card';
 
 type DeleteTarget =
   | { type: 'course'; label: string }
   | { type: 'task'; taskId: number; label: string }
   | null;
+
+type TaskPriorityOption = 'low' | 'medium' | 'high' | '';
 
 function CoursePage() {
   const navigate = useNavigate();
@@ -60,11 +78,111 @@ function CoursePage() {
     }
   });
 
+  const updateTaskMutation = useMutation({
+    mutationFn: ({
+      taskId,
+      status
+    }: {
+      taskId: number;
+      status: 'pending' | 'in_progress' | 'completed' | 'overdue';
+    }) => updateTask(taskId, { status }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+      await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    }
+  });
+
   const [taskTitle, setTaskTitle] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
+  const [taskDeadline, setTaskDeadline] = useState('');
+  const [taskEstimatedHours, setTaskEstimatedHours] = useState('');
+  const [taskPriority, setTaskPriority] = useState<TaskPriorityOption>('');
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
 
   const courses = coursesQuery.data?.courses ?? [];
   const course = courses.find((item) => item.id === courseId) ?? null;
+
+  function formatDeadline(value: string) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  function toOptionalNumber(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  function formatHours(value: string | number | null | undefined) {
+    if (value === null || value === undefined) return null;
+    const numeric = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) return null;
+    return `${numeric}h`;
+  }
+
+  function nextStatus(
+    status: string | null | undefined
+  ): 'pending' | 'in_progress' | 'completed' | 'overdue' {
+    const normalized = status?.toLowerCase() ?? 'pending';
+    switch (normalized) {
+      case 'pending':
+        return 'in_progress';
+      case 'in_progress':
+        return 'completed';
+      case 'completed':
+        return 'pending';
+      case 'overdue':
+        return 'in_progress';
+      default:
+        return 'pending';
+    }
+  }
+
+  function statusLabel(status: string | null | undefined) {
+    return (status ?? 'PENDING').toLowerCase().replace('_', ' ');
+  }
+
+  function statusTone(status: string | null | undefined) {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
+      case 'in_progress':
+        return 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300';
+      case 'overdue':
+        return 'border-destructive/30 bg-destructive/10 text-destructive';
+      case 'pending':
+      default:
+        return 'border-[var(--study-line)] bg-[var(--study-surface-soft)] text-[var(--study-copy-muted)]';
+    }
+  }
+
+  function getPriorityTone(priority: string | null | undefined) {
+    switch (priority?.toLowerCase()) {
+      case 'high':
+        return 'border-destructive/30 bg-destructive/10 text-destructive';
+      case 'medium':
+        return 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400';
+      case 'low':
+        return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
+      default:
+        return 'border-[var(--study-line)] bg-[var(--study-surface-soft)] text-[var(--study-copy-muted)]';
+    }
+  }
+
+  function renderPriorityLabel(priority: string | null | undefined) {
+    if (!priority) return 'Priority: none';
+    return `Priority: ${priority.toLowerCase()}`;
+  }
 
   function createMotionStyle(delay: number): CSSProperties {
     return {
@@ -81,9 +199,21 @@ function CoursePage() {
 
     await createTaskMutation.mutateAsync({
       courseId: course.id,
-      title: taskTitle.trim()
+      title: taskTitle.trim(),
+      ...(taskDescription.trim()
+        ? { description: taskDescription.trim() }
+        : {}),
+      ...(taskDeadline ? { deadline: taskDeadline } : {}),
+      ...(toOptionalNumber(taskEstimatedHours) !== undefined
+        ? { estimatedHours: toOptionalNumber(taskEstimatedHours) }
+        : {}),
+      ...(taskPriority ? { priority: taskPriority } : {})
     });
     setTaskTitle('');
+    setTaskDescription('');
+    setTaskDeadline('');
+    setTaskEstimatedHours('');
+    setTaskPriority('');
   }
 
   async function handleConfirmDelete() {
@@ -162,11 +292,15 @@ function CoursePage() {
                 <h1 className="font-display text-[clamp(2.8rem,5.6vw,5.5rem)] leading-[0.94] tracking-[-0.06em] text-[var(--study-ink)]">
                   {course.name}
                 </h1>
+                {course.code ? (
+                  <p className="mt-4 text-sm font-medium tracking-wide text-[var(--study-copy-muted)]">
+                    {course.code}
+                  </p>
+                ) : null}
                 <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--study-copy)]">
-                  Build this course into a real study sequence. Add readings,
-                  assignments, and revision blocks here so the subject becomes a
-                  visible line of work instead of a vague obligation in the
-                  background.
+                  {course.description?.trim()
+                    ? course.description
+                    : 'Build this course into a real study sequence. Add readings, assignments, and revision blocks here so the subject becomes a visible line of work instead of a vague obligation in the background.'}
                 </p>
               </div>
             </div>
@@ -213,26 +347,121 @@ function CoursePage() {
 
           <form
             onSubmit={handleCreateTask}
-            className="motion-enter mt-8 space-y-4"
+            className="motion-enter mt-8 space-y-5"
             style={createMotionStyle(260)}
           >
-            <Input
-              value={taskTitle}
-              onChange={(event) => setTaskTitle(event.target.value)}
-              placeholder="Task title"
-              className="h-12 rounded-none border-0 border-b border-[var(--study-line-strong)] bg-transparent px-0 focus-visible:border-[var(--study-focus)] focus-visible:ring-0"
-            />
+            <div className="space-y-2">
+              <label className="text-[0.68rem] font-medium uppercase tracking-[0.24em] text-[var(--study-kicker)]">
+                Title
+              </label>
+              <Input
+                value={taskTitle}
+                onChange={(event) => setTaskTitle(event.target.value)}
+                placeholder="Read chapter 3 and take notes"
+                className="h-12 rounded-xl border border-[var(--study-line-strong)] bg-transparent"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[0.68rem] font-medium uppercase tracking-[0.24em] text-[var(--study-kicker)]">
+                Details
+              </label>
+              <Textarea
+                value={taskDescription}
+                onChange={(event) => setTaskDescription(event.target.value)}
+                placeholder="Optional notes, links, acceptance criteria..."
+                className="min-h-[7.5rem] rounded-xl border border-[var(--study-line)] bg-transparent"
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <label className="inline-flex items-center gap-2 text-[0.68rem] font-medium uppercase tracking-[0.24em] text-[var(--study-kicker)]">
+                  <AlarmClock className="size-3.5" />
+                  Deadline
+                </label>
+                <Input
+                  type="datetime-local"
+                  value={taskDeadline}
+                  onChange={(event) => setTaskDeadline(event.target.value)}
+                  className="h-12 rounded-xl border border-[var(--study-line)] bg-transparent"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="inline-flex items-center gap-2 text-[0.68rem] font-medium uppercase tracking-[0.24em] text-[var(--study-kicker)]">
+                  <Timer className="size-3.5" />
+                  Est. hours
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.25}
+                  value={taskEstimatedHours}
+                  onChange={(event) =>
+                    setTaskEstimatedHours(event.target.value)
+                  }
+                  placeholder="2"
+                  className="h-12 rounded-xl border border-[var(--study-line)] bg-transparent"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="inline-flex items-center gap-2 text-[0.68rem] font-medium uppercase tracking-[0.24em] text-[var(--study-kicker)]">
+                  <Flag className="size-3.5" />
+                  Priority
+                </label>
+                <select
+                  value={taskPriority}
+                  onChange={(event) =>
+                    setTaskPriority(event.target.value as TaskPriorityOption)
+                  }
+                  className="h-12 w-full rounded-xl border border-[var(--study-line)] bg-transparent px-3 text-sm text-[var(--study-ink)]"
+                >
+                  <option value="">None</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--study-line)] bg-[var(--study-surface-soft)] px-4 py-3 text-xs text-[var(--study-copy-muted)]">
+              <div className="min-w-0">
+                <p className="truncate">
+                  {taskTitle.trim() ? (
+                    <>
+                      Creating:{' '}
+                      <span className="font-medium text-[var(--study-ink)]">
+                        {taskTitle.trim()}
+                      </span>
+                    </>
+                  ) : (
+                    'Fill in a title to create a task.'
+                  )}
+                </p>
+              </div>
+              <div className="shrink-0">
+                <span
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 ${getPriorityTone(
+                    taskPriority || null
+                  )}`}
+                >
+                  <Flag className="size-3.5" />
+                  {taskPriority ? taskPriority.toUpperCase() : 'NO PRIORITY'}
+                </span>
+              </div>
+            </div>
             <Button
               type="submit"
               size="lg"
               className="rounded-full px-5"
+              disabled={createTaskMutation.isPending || !taskTitle.trim()}
               style={{
                 backgroundColor: getCourseColor(course.color),
                 color: 'white'
               }}
             >
               <Plus className="size-4" />
-              Add task
+              {createTaskMutation.isPending ? 'Adding…' : 'Add task'}
             </Button>
           </form>
         </div>
@@ -258,42 +487,39 @@ function CoursePage() {
               {course.tasks.map((task, index) => (
                 <div
                   key={task.id}
-                  className="motion-enter motion-task-row grid gap-4 py-5 md:grid-cols-[0.08fr_0.92fr]"
+                  className="motion-enter py-5"
                   style={createMotionStyle(440 + index * 70)}
                 >
-                  <div className="flex items-start justify-start text-[0.7rem] font-medium uppercase tracking-[0.24em] text-[var(--study-kicker)]">
-                    {String(index + 1).padStart(2, '0')}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-start gap-3">
-                      <Dot
-                        className="mt-0.5 size-5 shrink-0"
-                        style={{ color: getCourseColor(course.color) }}
-                      />
-                      <div className="min-w-0">
-                        <p className="text-lg font-semibold text-[var(--study-ink-strong)]">
-                          {task.title}
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-[var(--study-copy-muted)]">
-                          Planned inside {course.name}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDeleteTarget({
-                            type: 'task',
-                            taskId: task.id,
-                            label: task.title
-                          })
-                        }
-                        className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-full text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive/80"
-                        aria-label={`Delete ${task.title}`}
-                        title={`Delete ${task.title}`}
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    </div>
+                  <div className="flex items-start gap-3">
+                    <TaskCard
+                      task={task}
+                      index={index}
+                      courseColor={getCourseColor(course.color)}
+                      variant="row"
+                      showCourseChip={false}
+                      isUpdatingStatus={updateTaskMutation.isPending}
+                      onUpdateStatus={(t, status) =>
+                        updateTaskMutation.mutate({
+                          taskId: t.id,
+                          status
+                        })
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDeleteTarget({
+                          type: 'task',
+                          taskId: task.id,
+                          label: task.title
+                        })
+                      }
+                      className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-full text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive/80"
+                      aria-label={`Delete ${task.title}`}
+                      title={`Delete ${task.title}`}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
                   </div>
                 </div>
               ))}
