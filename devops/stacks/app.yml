@@ -35,7 +35,7 @@ services:
         - traefik.http.middlewares.frontend-redirect-to-https.redirectscheme.scheme=https
 
         # HTTPS (443)
-        - traefik.http.routers.frontend.rule=Host(`lut.longle77.site`) && PathPrefix(`/`) && !PathPrefix(`/api`)
+        - traefik.http.routers.frontend.rule=Host(`lut.longle77.site`) && PathPrefix(`/`) && !PathPrefix(`/api`) && !PathPrefix(`/traefik`) && !PathPrefix(`/grafana`) && !PathPrefix(`/prometheus`) && !PathPrefix(`/loki`)
         - traefik.http.routers.frontend.entrypoints=websecure
         - traefik.http.routers.frontend.tls=true
         - traefik.http.routers.frontend.tls.certresolver=letsencrypt

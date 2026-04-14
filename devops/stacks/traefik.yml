@@ -8,6 +8,8 @@ version: '3.9'
 networks:
   traefik-public:
     external: true
+  monitoring:
+    external: true
 
 volumes:
   traefik-certs:
@@ -21,7 +23,8 @@ services:
       - --global.sendAnonymousUsage=false
 
       # ── API / Dashboard ─────────────────────────────────────────────────────
-      - --api.dashboard=true
+      # Dashboard intentionally disabled; view Traefik metrics in Grafana instead.
+      - --api.dashboard=false
 
       # ── Entrypoints ─────────────────────────────────────────────────────────
       - --entrypoints.web.address=:80
@@ -75,6 +78,7 @@ services:
 
     networks:
       - traefik-public
+      - monitoring
 
     deploy:
       placement:
@@ -86,20 +90,3 @@ services:
       labels:
         - traefik.enable=true
         - traefik.docker.network=traefik-public
-
-        # ── Dashboard router ───────────────────────────────────────────────────
-        # Accessible at: https://lut.longle77.site/traefik/dashboard/
-        - traefik.http.routers.traefik-dashboard.rule=Host(`lut.longle77.site`) && PathPrefix(`/traefik`)
-        - traefik.http.routers.traefik-dashboard.entrypoints=websecure
-        - traefik.http.routers.traefik-dashboard.tls=true
-        - traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt
-        - traefik.http.routers.traefik-dashboard.service=api@internal
-        - traefik.http.routers.traefik-dashboard.middlewares=traefik-auth,traefik-strip
-
-        # ── Strip /traefik prefix before forwarding to api@internal ───────────
-        - traefik.http.middlewares.traefik-strip.stripprefix.prefixes=/traefik
-
-        # ── Basic-auth middleware (generate hash with deploy.sh --gen-password) ─
-        # Replace the value below with: echo $(htpasswd -nB admin) | sed 's/\$/\$\$/g'
-        - 'traefik.http.middlewares.traefik-auth.basicauth.users=admin:admin'
-        - traefik.http.services.traefik-dashboard-svc.loadbalancer.server.port=8080
