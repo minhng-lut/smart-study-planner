@@ -65,8 +65,6 @@ services:
         - traefik.http.routers.backend.entrypoints=websecure
         - traefik.http.routers.backend.tls=true
         - traefik.http.routers.backend.tls.certresolver=letsencrypt
-        - traefik.http.routers.backend.middlewares=backend-strip-api
-        - traefik.http.middlewares.backend-strip-api.stripprefix.prefixes=/api
         - traefik.http.services.backend.loadbalancer.server.port=3000
 
 volumes:
