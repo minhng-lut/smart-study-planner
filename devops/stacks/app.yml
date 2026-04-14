@@ -7,6 +7,15 @@ networks:
     driver: overlay
 
 services:
+  db:
+    image: hoanglut97/lut-db:latest
+    networks:
+      - internal
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    deploy:
+      replicas: 1
+
   frontend:
     image: hoanglut97/lut-frontend:latest
     networks:
@@ -21,11 +30,14 @@ services:
     image: hoanglut97/lut-backend:latest
     environment:
       NODE_ENV: production
+      DATABASE_URL: postgresql://app:app@db:5432/app?schema=public
     networks:
-      - traefik-public
       - internal
     deploy:
       labels:
         - traefik.enable=true
         - traefik.http.routers.backend.rule=Host(`lut.longle77.site`)
         - traefik.http.services.backend.loadbalancer.server.port=8888
+
+volumes:
+  db_data:
