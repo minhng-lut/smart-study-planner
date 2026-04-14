@@ -1,9 +1,15 @@
 import { useState, type CSSProperties, type FormEvent } from 'react';
 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { BookOpenText, ClipboardList, Dot, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+  deleteCourse as deleteCourseRequest,
+  listCourses
+} from '@/lib/courses-api';
+import { createTask, deleteTask as deleteTaskRequest } from '@/lib/tasks-api';
 import {
   Dialog,
   DialogContent,
@@ -13,27 +19,52 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { usePlannerStore } from '@/stores/planner-store';
 
 type DeleteTarget =
   | { type: 'course'; label: string }
-  | { type: 'task'; taskId: string; label: string }
+  | { type: 'task'; taskId: number; label: string }
   | null;
 
 function CoursePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const pathname = useRouterState({
     select: (state) => state.location.pathname
   });
-  const courses = usePlannerStore((state) => state.courses);
-  const addTask = usePlannerStore((state) => state.addTask);
-  const deleteCourse = usePlannerStore((state) => state.deleteCourse);
-  const deleteTask = usePlannerStore((state) => state.deleteTask);
+
+  const courseId = Number(pathname.split('/')[2] ?? '0');
+  const coursesQuery = useQuery({
+    queryKey: ['courses'],
+    queryFn: listCourses
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: createTask,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+    }
+  });
+
+  const deleteCourseMutation = useMutation({
+    mutationFn: deleteCourseRequest,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+      await navigate({ to: '/' });
+    }
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: deleteTaskRequest,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+    }
+  });
+
   const [taskTitle, setTaskTitle] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
 
-  const courseSlug = pathname.split('/')[2] ?? '';
-  const course = courses.find((item) => item.slug === courseSlug) ?? null;
+  const courses = coursesQuery.data?.courses ?? [];
+  const course = courses.find((item) => item.id === courseId) ?? null;
 
   function createMotionStyle(delay: number): CSSProperties {
     return {
@@ -41,14 +72,17 @@ function CoursePage() {
     } as CSSProperties;
   }
 
-  function handleCreateTask(event: FormEvent<HTMLFormElement>) {
+  async function handleCreateTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!course || !taskTitle.trim()) {
       return;
     }
 
-    addTask(course.id, taskTitle);
+    await createTaskMutation.mutateAsync({
+      courseId: course.id,
+      title: taskTitle.trim()
+    });
     setTaskTitle('');
   }
 
@@ -62,14 +96,17 @@ function CoursePage() {
     }
 
     if (deleteTarget.type === 'course') {
-      deleteCourse(course.id);
+      await deleteCourseMutation.mutateAsync(course.id);
       setDeleteTarget(null);
-      await navigate({ to: '/' });
       return;
     }
 
-    deleteTask(course.id, deleteTarget.taskId);
+    await deleteTaskMutation.mutateAsync(deleteTarget.taskId);
     setDeleteTarget(null);
+  }
+
+  function getCourseColor(color: string | null) {
+    return color ?? '#4f46e5';
   }
 
   if (!course) {
@@ -99,7 +136,7 @@ function CoursePage() {
         >
           <div
             className="motion-orb absolute -left-8 top-0 h-28 w-28 rounded-full blur-3xl"
-            style={{ backgroundColor: `${course.color}2f` }}
+            style={{ backgroundColor: `${getCourseColor(course.color)}2f` }}
           />
           <div className="relative">
             <div
@@ -108,7 +145,7 @@ function CoursePage() {
             >
               <BookOpenText
                 className="size-4"
-                style={{ color: course.color }}
+                style={{ color: getCourseColor(course.color) }}
               />
               Course workspace
             </div>
@@ -119,7 +156,7 @@ function CoursePage() {
             >
               <span
                 className="mt-3 inline-flex size-4 shrink-0 rounded-full"
-                style={{ backgroundColor: course.color }}
+                style={{ backgroundColor: getCourseColor(course.color) }}
               />
               <div>
                 <h1 className="font-display text-[clamp(2.8rem,5.6vw,5.5rem)] leading-[0.94] tracking-[-0.06em] text-[var(--study-ink)]">
@@ -189,7 +226,10 @@ function CoursePage() {
               type="submit"
               size="lg"
               className="rounded-full px-5"
-              style={{ backgroundColor: course.color, color: 'white' }}
+              style={{
+                backgroundColor: getCourseColor(course.color),
+                color: 'white'
+              }}
             >
               <Plus className="size-4" />
               Add task
@@ -228,7 +268,7 @@ function CoursePage() {
                     <div className="flex items-start gap-3">
                       <Dot
                         className="mt-0.5 size-5 shrink-0"
-                        style={{ color: course.color }}
+                        style={{ color: getCourseColor(course.color) }}
                       />
                       <div className="min-w-0">
                         <p className="text-lg font-semibold text-[var(--study-ink-strong)]">

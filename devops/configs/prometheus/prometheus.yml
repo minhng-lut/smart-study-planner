@@ -1,0 +1,54 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: swarm
+    site: lut.longle77.site
+
+# ── Alertmanager (optional — uncomment and configure if needed) ───────────────
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  # ── Prometheus self-scrape ───────────────────────────────────────────────────
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ── Traefik metrics ──────────────────────────────────────────────────────────
+  # Traefik exposes metrics on port 8082 (entrypoint: traefik-metrics)
+  - job_name: traefik
+    static_configs:
+      - targets: ['traefik:8082']
+    metrics_path: /metrics
+
+  # ── Node Exporter (host metrics) ─────────────────────────────────────────────
+  # Running in global mode; DNS task.<service> resolves all replicas in swarm
+  - job_name: node-exporter
+    dns_sd_configs:
+      - names:
+          - tasks.node-exporter
+        type: A
+        port: 9100
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+
+  # ── cAdvisor (container metrics) ────────────────────────────────────────────
+  - job_name: cadvisor
+    dns_sd_configs:
+      - names:
+          - tasks.cadvisor
+        type: A
+        port: 8080
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+
+  # ── Grafana (optional self-scrape) ───────────────────────────────────────────
+  - job_name: grafana
+    static_configs:
+      - targets: ['grafana:3000']
+    metrics_path: /metrics

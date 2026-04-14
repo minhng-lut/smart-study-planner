@@ -85,7 +85,7 @@ function AccountPage() {
             </h1>
           </div>
           <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-600">
-            {currentUser?.role ?? 'user'}
+            {currentUser?.role ?? 'student'}
           </div>
         </div>
 

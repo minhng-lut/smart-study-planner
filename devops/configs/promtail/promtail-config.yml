@@ -1,0 +1,52 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # ── Docker container logs via Docker service discovery ───────────────────────
+  - job_name: docker-containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: status
+            values: [running]
+    relabel_configs:
+      # Container name (strip leading slash)
+      - source_labels: [__meta_docker_container_name]
+        regex: /(.*)
+        target_label: container
+
+      # Docker Swarm service name
+      - source_labels:
+          [__meta_docker_container_label_com_docker_swarm_service_name]
+        target_label: service
+
+      # Docker Swarm stack (namespace)
+      - source_labels:
+          [__meta_docker_container_label_com_docker_stack_namespace]
+        target_label: stack
+
+      # Log stream (stdout / stderr)
+      - source_labels: [__meta_docker_container_log_stream]
+        target_label: stream
+
+      # Image name
+      - source_labels: [__meta_docker_container_label_image]
+        target_label: image
+
+      # Drop containers with no swarm service label (standalone containers)
+      - source_labels:
+          [__meta_docker_container_label_com_docker_swarm_service_name]
+        regex: .+
+        action: keep
+
+    pipeline_stages:
+      # Parse Docker JSON log wrapper
+      - docker: {}

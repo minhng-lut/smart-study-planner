@@ -9,6 +9,8 @@ import { ZodError } from 'zod';
 import { env } from './config/env.js';
 import { openApiDocument } from './docs/openapi.js';
 import { authRouter } from './routes/auth.js';
+import { coursesRouter } from './routes/courses.js';
+import { tasksRouter } from './routes/tasks.js';
 
 const app = express();
 
@@ -24,6 +26,8 @@ app.get('/docs.json', (_req: Request, res: Response) => {
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
 app.use('/auth', authRouter);
+app.use('/courses', coursesRouter);
+app.use('/tasks', tasksRouter);
 
 app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
   void next;
