@@ -116,3 +116,4 @@ ALTER TABLE "tasks" ADD CONSTRAINT "tasks_course_id_fkey" FOREIGN KEY ("course_i
 
 -- AddForeignKey
 ALTER TABLE "analytics_results" ADD CONSTRAINT "analytics_results_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
