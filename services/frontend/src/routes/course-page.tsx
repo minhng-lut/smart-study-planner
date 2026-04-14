@@ -107,7 +107,6 @@ function CoursePage() {
     return Number.isFinite(parsed) ? parsed : undefined;
   }
 
-
   function getPriorityTone(priority: string | null | undefined) {
     switch (priority?.toLowerCase()) {
       case 'high':
@@ -120,7 +119,6 @@ function CoursePage() {
         return 'border-[var(--study-line)] bg-[var(--study-surface-soft)] text-[var(--study-copy-muted)]';
     }
   }
-
 
   function createMotionStyle(delay: number): CSSProperties {
     return {
