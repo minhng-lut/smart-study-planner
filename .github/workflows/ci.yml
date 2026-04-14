@@ -66,11 +66,6 @@ jobs:
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/lut-backend:latest ./services/backend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/lut-backend:latest
 
-      - name: Build and push database image
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/lut-db:latest ./database
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/lut-db:latest
-
       # - name: Build python service image
       #   run: docker build -t python-service:ci ./services/python-service
 

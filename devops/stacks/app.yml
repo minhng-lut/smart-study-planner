@@ -28,7 +28,17 @@ services:
     deploy:
       labels:
         - traefik.enable=true
-        - traefik.http.routers.frontend.rule=Host(`lut.longle77.site`)
+        # HTTP (80) → HTTPS redirect
+        - traefik.http.routers.frontend-http.rule=Host(`lut.longle77.site`)
+        - traefik.http.routers.frontend-http.entrypoints=web
+        - traefik.http.routers.frontend-http.middlewares=frontend-redirect-to-https
+        - traefik.http.middlewares.frontend-redirect-to-https.redirectscheme.scheme=https
+
+        # HTTPS (443)
+        - traefik.http.routers.frontend.rule=Host(`lut.longle77.site`) && PathPrefix(`/`) && !PathPrefix(`/api`)
+        - traefik.http.routers.frontend.entrypoints=websecure
+        - traefik.http.routers.frontend.tls=true
+        - traefik.http.routers.frontend.tls.certresolver=letsencrypt
         - traefik.http.services.frontend.loadbalancer.server.port=80
         - traefik.docker.network=traefik-public
 
@@ -39,9 +49,20 @@ services:
       DATABASE_URL: postgresql://app:app@db:5432/app?schema=public
     command: ['sh', '-lc', 'npx prisma migrate deploy && npm start']
     networks:
+      - traefik-public
       - internal
     deploy:
       replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik-public
+        - traefik.http.routers.backend.rule=Host(`lut.longle77.site`) && PathPrefix(`/api`)
+        - traefik.http.routers.backend.entrypoints=websecure
+        - traefik.http.routers.backend.tls=true
+        - traefik.http.routers.backend.tls.certresolver=letsencrypt
+        - traefik.http.routers.backend.middlewares=backend-strip-api
+        - traefik.http.middlewares.backend-strip-api.stripprefix.prefixes=/api
+        - traefik.http.services.backend.loadbalancer.server.port=3000
 
 volumes:
   db_data:
