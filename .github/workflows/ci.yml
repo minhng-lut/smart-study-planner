@@ -49,9 +49,24 @@ jobs:
       - name: Install python service dependencies
         working-directory: services/python-service
         run: pip install -r requirements.txt
+      # Temporary pushing to the docker image to test the deployment workflow
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build frontend Docker image (no push)
-        run: docker build -t lut-frontend:ci ./services/frontend
+      - name: Build and push frontend image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/lut-frontend:latest ./services/frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/lut-frontend:latest
+      - name: Build and push backend image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/lut-backend:latest ./services/backend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/lut-backend:latest
 
-      - name: Build backend Docker image (no push)
-        run: docker build -t lut-backend:ci ./services/backend
+      # - name: Build frontend Docker image (no push)
+      #   run: docker build -t lut-frontend:ci ./services/frontend
+
+      # - name: Build backend Docker image (no push)
+      #   run: docker build -t lut-backend:ci ./services/backend
