@@ -63,7 +63,7 @@ function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
 }
 
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api'
 ).replace(/\/$/, '');
 
 function buildApiUrl(path: string) {
