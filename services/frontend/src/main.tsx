@@ -32,7 +32,8 @@ ReactDOM.createRoot(rootElement).render(
               title: 'font-medium text-[var(--study-ink)]',
               description: 'text-[var(--study-copy-muted)]',
               actionButton: 'bg-[var(--study-ink)] text-white',
-              cancelButton: 'bg-[var(--study-surface-soft)] text-[var(--study-ink)]'
+              cancelButton:
+                'bg-[var(--study-surface-soft)] text-[var(--study-ink)]'
             }
           }}
         />

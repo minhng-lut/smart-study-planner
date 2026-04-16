@@ -48,7 +48,11 @@ function AuthPage() {
       return mode === 'login' ? login(credentials) : register(credentials);
     },
     onSuccess: async (session) => {
-      toast.success(mode === 'login' ? 'Signed in successfully' : 'Account created successfully');
+      toast.success(
+        mode === 'login'
+          ? 'Signed in successfully'
+          : 'Account created successfully'
+      );
       setSession(session);
       queryClient.setQueryData(['auth', 'me'], {
         user: session.user
