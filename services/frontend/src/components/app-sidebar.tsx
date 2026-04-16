@@ -1,8 +1,14 @@
-import { BookMarked, CalendarDays, ChartColumnBig, Settings2 } from 'lucide-react';
+import {
+  BookMarked,
+  CalendarDays,
+  ChartColumnBig,
+  LoaderCircle,
+  LogOutIcon,
+  Settings2
+} from 'lucide-react';
 
 import { NavCourses } from '@/components/nav-courses';
 import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
 import {
   Sidebar,
   SidebarContent,
@@ -13,12 +19,10 @@ import {
   SidebarMenuItem,
   SidebarRail
 } from '@/components/ui/sidebar';
-import type { AuthUser } from '@/types/auth';
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
-  user: AuthUser | null;
   isLoggingOut: boolean;
-  onLogout: () => void;
+  onLogoutRequest: () => void;
 };
 
 const mainNavigation = [
@@ -40,9 +44,8 @@ const mainNavigation = [
 ];
 
 export function AppSidebar({
-  user,
   isLoggingOut,
-  onLogout,
+  onLogoutRequest,
   ...props
 }: AppSidebarProps) {
   return (
@@ -71,7 +74,23 @@ export function AppSidebar({
         <NavCourses />
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border/70">
-        <NavUser user={user} isLoggingOut={isLoggingOut} onLogout={onLogout} />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="lg"
+              onClick={onLogoutRequest}
+              disabled={isLoggingOut}
+              className="text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isLoggingOut ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <LogOutIcon />
+              )}
+              <span>{isLoggingOut ? 'Signing out...' : 'Log out'}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
