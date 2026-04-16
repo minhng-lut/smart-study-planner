@@ -408,6 +408,20 @@ function buildTaskUpdatePayload(values: TaskFormValues) {
   };
 }
 
+function buildCourseUpdatePayload(values: {
+  name: string;
+  color: string;
+  code: string;
+  description: string;
+}) {
+  return {
+    name: values.name.trim(),
+    color: values.color,
+    code: values.code.trim() || undefined,
+    description: values.description.trim() || undefined
+  };
+}
+
 const EMPTY_PRIORITY_VALUE = '__none__';
 const DEFAULT_TASK_TIME = '18:00';
 
@@ -869,6 +883,35 @@ function CoursePage() {
   const openTasksCount = taskCountsByFilter.open;
   const dueSoonTasksCount = taskCountsByFilter['due-soon'];
   const highPriorityTasksCount = taskCountsByFilter['high-priority'];
+  const currentTaskEditing = taskEditor
+    ? (course?.tasks.find((task) => task.id === taskEditor.id) ?? null)
+    : null;
+  const courseUpdatePayload = course
+    ? buildCourseUpdatePayload({
+        name: courseNameDraft,
+        color: courseColorDraft,
+        code: courseCodeDraft,
+        description: courseDescriptionDraft
+      })
+    : null;
+  const hasCourseChanges = course
+    ? JSON.stringify(courseUpdatePayload) !==
+      JSON.stringify(
+        buildCourseUpdatePayload({
+          name: course.name,
+          color: getCourseColor(course.color),
+          code: course.code ?? '',
+          description: course.description ?? ''
+        })
+      )
+    : false;
+  const hasTaskChanges =
+    currentTaskEditing && taskEditor
+      ? JSON.stringify(buildTaskUpdatePayload(taskEditor.values)) !==
+        JSON.stringify(
+          buildTaskUpdatePayload(createTaskFormFromTask(currentTaskEditing))
+        )
+      : false;
 
   useEffect(() => {
     setTaskFilter(readStoredTaskFilter(courseId));
@@ -1002,18 +1045,13 @@ function CoursePage() {
 
     const normalizedName = courseNameDraft.trim();
 
-    if (!normalizedName) {
+    if (!normalizedName || !hasCourseChanges || !courseUpdatePayload) {
       return;
     }
 
     await updateCourseMutation.mutateAsync({
       targetCourseId: course.id,
-      payload: {
-        name: normalizedName,
-        color: courseColorDraft,
-        code: courseCodeDraft.trim() || undefined,
-        description: courseDescriptionDraft.trim() || undefined
-      }
+      payload: courseUpdatePayload
     });
 
     setIsCourseEditorOpen(false);
@@ -1028,7 +1066,7 @@ function CoursePage() {
 
     const normalizedTitle = taskEditor.values.title.trim();
 
-    if (!normalizedTitle) {
+    if (!normalizedTitle || !hasTaskChanges) {
       return;
     }
 
@@ -1672,7 +1710,9 @@ function CoursePage() {
                   className="rounded-full px-4 text-white"
                   style={{ backgroundColor: courseColorDraft }}
                   disabled={
-                    updateCourseMutation.isPending || !courseNameDraft.trim()
+                    updateCourseMutation.isPending ||
+                    !courseNameDraft.trim() ||
+                    !hasCourseChanges
                   }
                 >
                   {updateCourseMutation.isPending ? 'Saving' : 'Save changes'}
@@ -1726,7 +1766,7 @@ function CoursePage() {
               <Button
                 type="submit"
                 form="edit-task-form"
-                disabled={updateTaskMutation.isPending}
+                disabled={updateTaskMutation.isPending || !hasTaskChanges}
               >
                 {updateTaskMutation.isPending ? 'Saving...' : 'Save changes'}
               </Button>

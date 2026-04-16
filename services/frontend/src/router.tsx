@@ -1,4 +1,4 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -15,6 +15,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { toast } from 'sonner';
 
 import { AppSidebar } from '@/components/app-sidebar';
+import { NavUser } from '@/components/nav-user';
 import { getCurrentUser, logout } from '@/lib/auth-api';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { listCourses } from '@/lib/courses-api';
@@ -29,6 +30,15 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from './components/ui/breadcrumb';
+import { Button } from './components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from './components/ui/dialog';
 import { Separator } from './components/ui/separator';
 import {
   SidebarInset,
@@ -65,6 +75,7 @@ function ProtectedAppLayout() {
   });
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   const meQuery = useQuery({
     queryKey: ['auth', 'me'],
@@ -140,13 +151,12 @@ function ProtectedAppLayout() {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-100 text-slate-950 md:flex">
       <SidebarProvider>
         <AppSidebar
-          user={currentUser}
           isLoggingOut={logoutMutation.isPending}
-          onLogout={() => logoutMutation.mutate()}
+          onLogoutRequest={() => setIsLogoutDialogOpen(true)}
         />
         <SidebarInset>
-          <header className="fixed inset-x-0 top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-(--study-line) bg-white/72 backdrop-blur-xl transition-[left,width,height] ease-linear supports-[backdrop-filter]:bg-white/55 md:left-[var(--sidebar-width)] md:group-has-data-[collapsible=icon]/sidebar-wrapper:left-[var(--sidebar-width-icon)] md:group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4">
+          <header className="fixed inset-x-0 top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-(--study-line) bg-white/72 px-4 backdrop-blur-xl transition-[left,width,height] ease-linear supports-[backdrop-filter]:bg-white/55 md:left-[var(--sidebar-width)] md:px-5 md:group-has-data-[collapsible=icon]/sidebar-wrapper:left-[var(--sidebar-width-icon)] md:group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+            <div className="flex min-w-0 items-center gap-2">
               <SidebarTrigger className="-ml-1" />
               <Separator
                 orientation="vertical"
@@ -177,10 +187,53 @@ function ProtectedAppLayout() {
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
+            <div className="shrink-0">
+              <NavUser
+                user={currentUser}
+                isLoggingOut={logoutMutation.isPending}
+                onLogoutRequest={() => setIsLogoutDialogOpen(true)}
+              />
+            </div>
           </header>
           <main className="flex-1 px-5 pb-6 pt-22 md:px-8 md:pb-8 md:pt-24">
             <Outlet />
           </main>
+          <Dialog
+            open={isLogoutDialogOpen}
+            onOpenChange={setIsLogoutDialogOpen}
+          >
+            <DialogContent className="max-w-md rounded-[1.5rem] border border-[var(--study-line)] bg-[var(--study-popover-surface)] p-0 text-[var(--study-ink)] shadow-[var(--study-popover-shadow)]">
+              <div className="px-6 pb-6 pt-7">
+                <DialogHeader className="border-b border-[var(--study-line)] pb-4 text-left">
+                  <DialogTitle className="font-display text-[1.7rem] leading-[0.95] tracking-[-0.05em] text-[var(--study-ink-strong)]">
+                    Log out
+                  </DialogTitle>
+                  <DialogDescription className="mt-2 text-sm leading-6 text-[var(--study-copy-muted)]">
+                    You will need to sign in again to continue planning your
+                    study work.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="mt-6 border-none bg-transparent p-0">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="rounded-full px-5"
+                    onClick={() => setIsLogoutDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    className="rounded-full px-5"
+                    onClick={() => logoutMutation.mutate()}
+                    disabled={logoutMutation.isPending}
+                  >
+                    {logoutMutation.isPending ? 'Signing out...' : 'Log out'}
+                  </Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
         </SidebarInset>
       </SidebarProvider>
     </div>
