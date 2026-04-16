@@ -98,6 +98,109 @@ const openApiDocument = {
         },
         required: ['message', 'issues']
       }
+      ,
+      Course: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          userId: { type: 'integer' },
+          name: { type: 'string' },
+          code: { type: 'string', nullable: true },
+          description: { type: 'string', nullable: true },
+          color: { type: 'string', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+          tasks: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Task' }
+          }
+        },
+        required: ['id', 'userId', 'name', 'createdAt', 'updatedAt']
+      },
+      CourseCreateRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          color: { type: 'string' },
+          code: { type: 'string' },
+          description: { type: 'string' }
+        },
+        required: ['name']
+      },
+      CourseUpdateRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          color: { type: 'string' },
+          code: { type: 'string' },
+          description: { type: 'string' }
+        }
+      },
+      Task: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          courseId: { type: 'integer' },
+          title: { type: 'string' },
+          description: { type: 'string', nullable: true },
+          deadline: { type: 'string', format: 'date-time', nullable: true },
+          estimatedHours: { type: 'number', nullable: true },
+          actualHours: { type: 'number', nullable: true },
+          status: { type: 'string', enum: ['pending','in_progress','completed','overdue'] },
+          priority: { type: 'string', enum: ['low','medium','high'], nullable: true },
+          completedAt: { type: 'string', format: 'date-time', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' }
+        },
+        required: ['id', 'courseId', 'title', 'createdAt', 'updatedAt']
+      },
+      TaskCreateRequest: {
+        type: 'object',
+        properties: {
+          courseId: { type: 'integer' },
+          title: { type: 'string' },
+          description: { type: 'string' },
+          deadline: { type: 'string', format: 'date-time' },
+          estimatedHours: { type: 'number' },
+          actualHours: { type: 'number' },
+          status: { type: 'string', enum: ['pending','in_progress','completed','overdue'] },
+          priority: { type: 'string', enum: ['low','medium','high'] }
+        },
+        required: ['courseId', 'title']
+      },
+      TaskUpdateRequest: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          description: { type: 'string' },
+          deadline: { type: 'string', format: 'date-time' },
+          completedAt: { type: 'string', format: 'date-time' },
+          estimatedHours: { type: 'number' },
+          actualHours: { type: 'number' },
+          status: { type: 'string', enum: ['pending','in_progress','completed','overdue'] },
+          priority: { type: 'string', enum: ['low','medium','high'] }
+        }
+      }
+      ,
+      AnalyzeRequest: {
+        type: 'object',
+        properties: {
+          userId: { type: 'integer' },
+          tasks: { type: 'array', items: { $ref: '#/components/schemas/Task' } }
+        },
+        required: ['userId', 'tasks']
+      },
+      AnalyzeResult: {
+        type: 'object',
+        properties: {
+          generatedAt: { type: 'string', format: 'date-time' },
+          workloadScore: { type: 'number', nullable: true },
+          riskLevel: { type: 'string', enum: ['none','low','medium','high'], nullable: true },
+          recommendedHoursPerDay: { type: 'number', nullable: true },
+          summaryJson: { type: 'object', additionalProperties: true, nullable: true }
+        },
+        required: ['generatedAt']
+      }
     }
   },
   paths: {
@@ -327,6 +430,127 @@ const openApiDocument = {
               }
             }
           }
+        }
+      }
+    }
+    ,
+    '/courses': {
+      get: {
+        tags: ['Courses'],
+        summary: 'List courses for the authenticated user',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'List of courses',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    courses: { type: 'array', items: { $ref: '#/components/schemas/Course' } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      post: {
+        tags: ['Courses'],
+        summary: 'Create a new course',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CourseCreateRequest' }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'Course created',
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { course: { $ref: '#/components/schemas/Course' } } }
+              }
+            }
+          },
+          '400': { description: 'Invalid request payload', content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } } }
+        }
+      }
+    },
+    '/courses/{courseId}': {
+      patch: {
+        tags: ['Courses'],
+        summary: 'Update an existing course',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'courseId', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/CourseUpdateRequest' } } } },
+        responses: {
+          '200': { description: 'Course updated', content: { 'application/json': { schema: { type: 'object', properties: { course: { $ref: '#/components/schemas/Course' } } } } } },
+          '400': { description: 'Invalid payload', content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } } },
+          '404': { description: 'Course not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        }
+      },
+      delete: {
+        tags: ['Courses'],
+        summary: 'Delete a course',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'courseId', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '204': { description: 'Course deleted' },
+          '404': { description: 'Course not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        }
+      }
+    },
+    '/tasks': {
+      post: {
+        tags: ['Tasks'],
+        summary: 'Create a new task',
+        security: [{ bearerAuth: [] }],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/TaskCreateRequest' } } } },
+        responses: {
+          '201': { description: 'Task created', content: { 'application/json': { schema: { type: 'object', properties: { task: { $ref: '#/components/schemas/Task' } } } } } },
+          '400': { description: 'Invalid payload', content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } } }
+        }
+      }
+    },
+    '/tasks/{taskId}': {
+      patch: {
+        tags: ['Tasks'],
+        summary: 'Update a task',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'taskId', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/TaskUpdateRequest' } } } },
+        responses: {
+          '200': { description: 'Task updated', content: { 'application/json': { schema: { type: 'object', properties: { task: { $ref: '#/components/schemas/Task' } } } } } },
+          '400': { description: 'Invalid payload', content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } } },
+          '404': { description: 'Task not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        }
+      },
+      delete: {
+        tags: ['Tasks'],
+        summary: 'Delete a task',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'taskId', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '204': { description: 'Task deleted' },
+          '404': { description: 'Task not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        }
+      }
+    }
+    ,
+    '/analysis': {
+      post: {
+        tags: ['Analysis'],
+        summary: 'Request analytics for the authenticated user',
+        security: [{ bearerAuth: [] }],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/AnalyzeRequest' } } } },
+        responses: {
+          '201': { description: 'Analysis created', content: { 'application/json': { schema: { type: 'object', properties: { analysis: { $ref: '#/components/schemas/AnalyzeResult' } } } } } },
+          '400': { description: 'Invalid request payload', content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } } },
+          '401': { description: 'Access token missing or invalid', content: { 'application/json': { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
         }
       }
     }
