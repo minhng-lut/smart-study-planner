@@ -717,11 +717,30 @@ function CoursePage() {
     queryFn: listCourses
   });
 
+  function patchCourseTasks(
+    targetCourseId: number,
+    updater: (tasks: Task[]) => Task[]
+  ) {
+    queryClient.setQueryData<CoursesQueryData>(['courses'], (current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        courses: current.courses.map((item) =>
+          item.id === targetCourseId
+            ? { ...item, tasks: updater(item.tasks) }
+            : item
+        )
+      };
+    });
+  }
+
   const createTaskMutation = useMutation({
     mutationFn: createTask,
-    onSuccess: async () => {
+    onSuccess: ({ task }) => {
       toast.success('Task created');
-      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+      patchCourseTasks(task.courseId, (tasks) => [task, ...tasks]);
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to create task'));
@@ -736,9 +755,11 @@ function CoursePage() {
       taskId: number;
       payload: ReturnType<typeof buildTaskUpdatePayload>;
     }) => updateTask(taskId, payload),
-    onSuccess: async () => {
+    onSuccess: ({ task }) => {
       toast.success('Task updated');
-      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+      patchCourseTasks(task.courseId, (tasks) =>
+        tasks.map((item) => (item.id === task.id ? task : item))
+      );
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to update task'));
@@ -751,9 +772,11 @@ function CoursePage() {
         status: 'completed',
         completedAt: new Date().toISOString()
       }),
-    onSuccess: async () => {
+    onSuccess: ({ task }) => {
       toast.success('Task marked as done');
-      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+      patchCourseTasks(task.courseId, (tasks) =>
+        tasks.map((item) => (item.id === task.id ? task : item))
+      );
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to mark task as done'));
@@ -833,9 +856,11 @@ function CoursePage() {
 
   const deleteTaskMutation = useMutation({
     mutationFn: deleteTaskRequest,
-    onSuccess: async () => {
+    onSuccess: (_data, taskId) => {
       toast.success('Task deleted');
-      await queryClient.invalidateQueries({ queryKey: ['courses'] });
+      patchCourseTasks(courseId, (tasks) =>
+        tasks.filter((item) => item.id !== taskId)
+      );
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to delete task'));
