@@ -32,7 +32,8 @@ router.get(
           : undefined,
       riskLevel: r.riskLevel ? String(r.riskLevel).toLowerCase() : undefined,
       recommendedHoursPerDay:
-        r.recommendedHoursPerDay !== null && r.recommendedHoursPerDay !== undefined
+        r.recommendedHoursPerDay !== null &&
+        r.recommendedHoursPerDay !== undefined
           ? Number(String(r.recommendedHoursPerDay))
           : undefined,
       summaryJson: r.summaryJson ?? undefined
@@ -50,7 +51,8 @@ router.post(
 
     // we can forward the request body to the python analysis service.
     // we can also adjust the target URL if your python service runs on a different host/port.
-    const pythonUrl = process.env.PYTHON_SERVICE_URL ?? 'http://localhost:8000/analyze';
+    const pythonUrl =
+      process.env.PYTHON_SERVICE_URL ?? 'http://localhost:8000/analyze';
 
     const response = await fetch(pythonUrl, {
       method: 'POST',
@@ -60,14 +62,19 @@ router.post(
 
     if (!response.ok) {
       const text = await response.text();
-      res.status(502).json({ message: 'Analysis service error', details: text });
+      res
+        .status(502)
+        .json({ message: 'Analysis service error', details: text });
       return;
     }
 
     const analysis = await response.json();
 
     // i mapped python-service risk values (lowercase) to Prisma enum keys (NONE/LOW/MEDIUM/HIGH)
-    const rawRisk = typeof analysis.riskLevel === 'string' ? analysis.riskLevel.trim() : undefined;
+    const rawRisk =
+      typeof analysis.riskLevel === 'string'
+        ? analysis.riskLevel.trim()
+        : undefined;
     const normalizedRisk = rawRisk ? rawRisk.toLowerCase() : undefined;
     const riskMap: Record<string, string> = {
       none: 'NONE',
@@ -83,7 +90,9 @@ router.post(
     const created = await prisma.analyticsResult.create({
       data: {
         userId,
-        generatedAt: analysis.generatedAt ? new Date(analysis.generatedAt) : undefined,
+        generatedAt: analysis.generatedAt
+          ? new Date(analysis.generatedAt)
+          : undefined,
         workloadScore: analysis.workloadScore ?? undefined,
         riskLevel: prismaRisk ?? undefined,
         recommendedHoursPerDay: analysis.recommendedHoursPerDay ?? undefined,
@@ -92,47 +101,50 @@ router.post(
     });
 
     res.status(201).json({ analysis: { ...analysis, id: created.id } });
-      })
-    );
+  })
+);
 
-    // GET /:id - return a single analysis result for the authenticated user
-    // we have this so that the clients fetch one analysis directly and avoids fetchiing a large list or getting extra data
-    router.get(
-      '/:id',
-      asyncHandler(async (req: Request, res: Response) => {
-        const userId = req.auth!.id;
-        const id = Number(req.params.id);
+// GET /:id - return a single analysis result for the authenticated user
+// we have this so that the clients fetch one analysis directly and avoids fetchiing a large list or getting extra data
+router.get(
+  '/:id',
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.auth!.id;
+    const id = Number(req.params.id);
 
-        if (!Number.isInteger(id) || id <= 0) {
-          res.status(400).json({ message: 'Invalid analysis id' });
-          return;
-        }
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ message: 'Invalid analysis id' });
+      return;
+    }
 
-        const result = await prisma.analyticsResult.findUnique({ where: { id } });
+    const result = await prisma.analyticsResult.findUnique({ where: { id } });
 
-        if (!result || result.userId !== userId) {
-          res.status(404).json({ message: 'Analysis not found' });
-          return;
-        }
+    if (!result || result.userId !== userId) {
+      res.status(404).json({ message: 'Analysis not found' });
+      return;
+    }
 
-        const analysis = {
-          id: result.id,
-          userId: result.userId,
-          generatedAt: result.generatedAt,
-          workloadScore:
-            result.workloadScore !== null && result.workloadScore !== undefined
-              ? Number(String(result.workloadScore))
-              : undefined,
-          riskLevel: result.riskLevel ? String(result.riskLevel).toLowerCase() : undefined,
-          recommendedHoursPerDay:
-            result.recommendedHoursPerDay !== null && result.recommendedHoursPerDay !== undefined
-              ? Number(String(result.recommendedHoursPerDay))
-              : undefined,
-          summaryJson: result.summaryJson ?? undefined
-        };
+    const analysis = {
+      id: result.id,
+      userId: result.userId,
+      generatedAt: result.generatedAt,
+      workloadScore:
+        result.workloadScore !== null && result.workloadScore !== undefined
+          ? Number(String(result.workloadScore))
+          : undefined,
+      riskLevel: result.riskLevel
+        ? String(result.riskLevel).toLowerCase()
+        : undefined,
+      recommendedHoursPerDay:
+        result.recommendedHoursPerDay !== null &&
+        result.recommendedHoursPerDay !== undefined
+          ? Number(String(result.recommendedHoursPerDay))
+          : undefined,
+      summaryJson: result.summaryJson ?? undefined
+    };
 
-        res.json({ analysis });
-      })
-    );
+    res.json({ analysis });
+  })
+);
 
-    export { router as analysisRouter };
+export { router as analysisRouter };
