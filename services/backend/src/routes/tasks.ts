@@ -39,14 +39,14 @@ const createTaskSchema = z.object({
 const updateTaskSchema = z
   .object({
     title: z.string().trim().min(1).max(150).optional(),
-    description: z.string().trim().max(10_000).optional(),
+    description: z.string().trim().max(10_000).nullable().optional(),
     deadline: z.preprocess(
-      (v) => (v ? new Date(v as string) : undefined),
-      z.date().optional()
+      (v) => (v === null ? null : v ? new Date(v as string) : undefined),
+      z.date().nullable().optional()
     ),
     completedAt: z.preprocess(
-      (v) => (v ? new Date(v as string) : undefined),
-      z.date().optional()
+      (v) => (v === null ? null : v ? new Date(v as string) : undefined),
+      z.date().nullable().optional()
     ),
     estimatedHours: z
       .preprocess(
@@ -63,7 +63,7 @@ const updateTaskSchema = z
     status: z
       .enum(['pending', 'in_progress', 'completed', 'overdue'])
       .optional(),
-    priority: z.enum(['low', 'medium', 'high']).optional()
+    priority: z.enum(['low', 'medium', 'high']).nullable().optional()
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field must be provided'
@@ -163,10 +163,12 @@ router.patch(
       updateData.status = (
         updates.status as string
       ).toUpperCase() as TaskStatus;
-    if (updates.priority !== undefined)
-      updateData.priority = (
-        updates.priority as string
-      ).toUpperCase() as TaskPriority;
+    if (updates.priority !== undefined) {
+      updateData.priority =
+        updates.priority === null
+          ? null
+          : ((updates.priority as string).toUpperCase() as TaskPriority);
+    }
 
     const task = await prisma.task.update({
       where: { id: taskId },
