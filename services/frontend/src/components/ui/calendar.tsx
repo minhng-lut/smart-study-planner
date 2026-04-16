@@ -59,7 +59,8 @@ function Calendar({
           buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
           'size-9 rounded-full font-normal aria-selected:opacity-100'
         ),
-        today: '[&>button]:text-[var(--study-ink)] [&>button]:ring-1 [&>button]:ring-[var(--study-line)]',
+        today:
+          '[&>button]:text-[var(--study-ink)] [&>button]:ring-1 [&>button]:ring-[var(--study-line)]',
         selected:
           '[&>button]:bg-[var(--study-ink)] [&>button]:text-white [&>button]:hover:bg-[var(--study-ink)] [&>button]:hover:text-white [&>button]:focus:bg-[var(--study-ink)] [&>button]:focus:text-white [&>button]:rounded-full',
         outside: 'text-[var(--study-copy-muted)] opacity-50',
