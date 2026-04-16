@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
+import type { RiskLevel } from '@prisma/client';
 
 import { asyncHandler } from '../lib/async-handler.js';
 import { prisma } from '../lib/prisma.js';
@@ -27,12 +28,12 @@ router.get(
       generatedAt: r.generatedAt,
       workloadScore:
         r.workloadScore !== null && r.workloadScore !== undefined
-          ? Number((r.workloadScore as any).toString())
+          ? Number(String(r.workloadScore))
           : undefined,
       riskLevel: r.riskLevel ? String(r.riskLevel).toLowerCase() : undefined,
       recommendedHoursPerDay:
         r.recommendedHoursPerDay !== null && r.recommendedHoursPerDay !== undefined
-          ? Number((r.recommendedHoursPerDay as any).toString())
+          ? Number(String(r.recommendedHoursPerDay))
           : undefined,
       summaryJson: r.summaryJson ?? undefined
     }));
@@ -74,7 +75,10 @@ router.post(
       medium: 'MEDIUM',
       high: 'HIGH'
     };
-    const prismaRisk = normalizedRisk && riskMap[normalizedRisk] ? riskMap[normalizedRisk] : undefined;
+    const prismaRisk: RiskLevel | undefined =
+      normalizedRisk && riskMap[normalizedRisk]
+        ? (riskMap[normalizedRisk] as RiskLevel)
+        : undefined;
 
     const created = await prisma.analyticsResult.create({
       data: {
@@ -117,12 +121,12 @@ router.post(
           generatedAt: result.generatedAt,
           workloadScore:
             result.workloadScore !== null && result.workloadScore !== undefined
-              ? Number((result.workloadScore as any).toString())
+              ? Number(String(result.workloadScore))
               : undefined,
           riskLevel: result.riskLevel ? String(result.riskLevel).toLowerCase() : undefined,
           recommendedHoursPerDay:
             result.recommendedHoursPerDay !== null && result.recommendedHoursPerDay !== undefined
-              ? Number((result.recommendedHoursPerDay as any).toString())
+              ? Number(String(result.recommendedHoursPerDay))
               : undefined,
           summaryJson: result.summaryJson ?? undefined
         };
