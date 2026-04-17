@@ -8,6 +8,7 @@ const envSchema = z.object({
     .default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().min(1),
+  FRONTEND_ORIGIN: z.string().url().default('http://localhost:5173'),
   JWT_ACCESS_SECRET: z.string().min(32).optional(),
   JWT_REFRESH_SECRET: z.string().min(32).optional(),
   JWT_ACCESS_SECRET_FILE: z.string().min(1).optional(),
@@ -45,7 +46,6 @@ if (
 
 export const env = {
   ...baseEnv,
-  // These placeholders are only used outside production when secrets are not provided.
   JWT_ACCESS_SECRET:
     jwtAccessSecret ??
     'dev-only-placeholder-dev-only-placeholder-dev-only-placeholder-dev-only-placeholder',

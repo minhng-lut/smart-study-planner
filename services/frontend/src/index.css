@@ -59,13 +59,9 @@
   --study-form-icon: oklch(0.56 0.02 80);
   --study-focus: oklch(0.62 0.08 240);
   --study-focus-soft: oklch(0.72 0.06 220);
-  --study-surface-soft: oklch(0.98 0.01 85 / 0.72);
+  --study-surface-soft: oklch(0.98 0.01 85);
   --study-popover-border: oklch(0.87 0.02 82);
-  --study-popover-surface: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(248, 244, 238, 0.98)
-  );
+  --study-popover-surface: oklch(0.985 0.008 85);
   --study-popover-shadow: 0 24px 80px rgba(24, 24, 27, 0.16);
   --study-divider: rgba(148, 163, 184, 0.55);
   --study-tab-surface: rgba(255, 255, 255, 0.9);

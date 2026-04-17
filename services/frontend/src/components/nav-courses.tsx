@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
+import { toast } from 'sonner';
 import {
   ArrowUpRight,
   BookOpenText,
@@ -9,6 +10,7 @@ import {
   ClipboardList,
   Dot,
   MoreHorizontal,
+  PencilLine,
   Plus,
   Trash2
 } from 'lucide-react';
@@ -40,6 +42,7 @@ import {
   listCourses
 } from '@/lib/courses-api';
 import { deleteTask as deleteTaskRequest } from '@/lib/tasks-api';
+import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import {
   SidebarGroup,
   SidebarGroupAction,
@@ -92,6 +95,7 @@ export function NavCourses() {
   const createCourseMutation = useMutation({
     mutationFn: createCourse,
     onSuccess: async ({ course }) => {
+      toast.success(`Created course: ${course.name}`);
       await queryClient.invalidateQueries({ queryKey: ['courses'] });
       await navigate({
         to: '/courses/$courseId',
@@ -99,21 +103,32 @@ export function NavCourses() {
           courseId: String(course.id)
         }
       });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to create course'));
     }
   });
 
   const deleteCourseMutation = useMutation({
     mutationFn: deleteCourseRequest,
     onSuccess: async () => {
+      toast.success('Course deleted');
       await queryClient.invalidateQueries({ queryKey: ['courses'] });
       await navigate({ to: '/' });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to delete course'));
     }
   });
 
   const deleteTaskMutation = useMutation({
     mutationFn: deleteTaskRequest,
     onSuccess: async () => {
+      toast.success('Task deleted');
       await queryClient.invalidateQueries({ queryKey: ['courses'] });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to delete task'));
     }
   });
 
@@ -122,6 +137,8 @@ export function NavCourses() {
   const [courseColor, setCourseColor] = useState<string>(
     COURSE_COLOR_OPTIONS[0]
   );
+  const [courseCode, setCourseCode] = useState('');
+  const [courseDescription, setCourseDescription] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
 
   async function handleCreateCourse(event: FormEvent<HTMLFormElement>) {
@@ -135,11 +152,15 @@ export function NavCourses() {
 
     await createCourseMutation.mutateAsync({
       name: normalizedName,
-      color: courseColor
+      color: courseColor,
+      code: courseCode.trim() || undefined,
+      description: courseDescription.trim() || undefined
     });
 
     setCourseName('');
     setCourseColor(COURSE_COLOR_OPTIONS[0]);
+    setCourseCode('');
+    setCourseDescription('');
     setIsCoursePopoverOpen(false);
   }
 
@@ -191,6 +212,8 @@ export function NavCourses() {
           if (!open) {
             setCourseName('');
             setCourseColor(COURSE_COLOR_OPTIONS[0]);
+            setCourseCode('');
+            setCourseDescription('');
           }
         }}
       >
@@ -314,8 +337,47 @@ export function NavCourses() {
                     <p className="mt-2 text-sm leading-6 text-[var(--study-ink)]">
                       {courseName.trim() || 'Your next course'}
                     </p>
+                    {courseCode.trim() ? (
+                      <p className="mt-1 text-[0.68rem] font-medium uppercase tracking-[0.22em] text-[var(--study-kicker)]">
+                        {courseCode.trim()}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="course-code"
+                  className="text-[0.68rem] font-medium uppercase tracking-[0.24em] text-[var(--study-kicker)]"
+                >
+                  Course code
+                </label>
+                <Input
+                  id="course-code"
+                  value={courseCode}
+                  onChange={(event) => setCourseCode(event.target.value)}
+                  placeholder="CS101"
+                  maxLength={30}
+                  className="h-12 rounded-none border-0 border-b border-[var(--study-line)] bg-transparent px-0 text-base shadow-none focus-visible:border-[var(--study-focus)] focus-visible:ring-0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="course-description"
+                  className="text-[0.68rem] font-medium uppercase tracking-[0.24em] text-[var(--study-kicker)]"
+                >
+                  Description
+                </label>
+                <textarea
+                  id="course-description"
+                  value={courseDescription}
+                  onChange={(event) => setCourseDescription(event.target.value)}
+                  placeholder="What does this course cover?"
+                  maxLength={10000}
+                  className="min-h-24 w-full rounded-2xl border border-[var(--study-line)] bg-[var(--study-surface-soft)] px-4 py-3 text-sm leading-6 text-[var(--study-ink)] outline-none transition-colors placeholder:text-[var(--study-copy-muted)] focus-visible:border-[var(--study-focus)]"
+                />
               </div>
 
               <div className="flex items-center justify-between gap-3 border-t border-[var(--study-line)] pt-4">
@@ -327,6 +389,8 @@ export function NavCourses() {
                   onClick={() => {
                     setCourseName('');
                     setCourseColor(COURSE_COLOR_OPTIONS[0]);
+                    setCourseCode('');
+                    setCourseDescription('');
                     setIsCoursePopoverOpen(false);
                   }}
                 >
@@ -406,8 +470,8 @@ export function NavCourses() {
                         })
                       }
                     >
-                      <Plus className="text-muted-foreground" />
-                      <span>Create new task</span>
+                      <PencilLine className="text-muted-foreground" />
+                      <span>Edit course</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
                       <ArrowUpRight className="text-muted-foreground" />

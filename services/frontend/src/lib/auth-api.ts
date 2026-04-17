@@ -1,6 +1,5 @@
 import { useAuthStore } from '@/stores/auth-store';
 import type {
-  AdminAccessResponse,
   AuthResponse,
   Credentials,
   CurrentUserResponse
@@ -31,6 +30,14 @@ export class ApiError extends Error {
 
 let refreshPromise: Promise<AuthResponse> | null = null;
 
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api'
+).replace(/\/$/, '');
+
+function buildApiUrl(path: string) {
+  return `${API_BASE_URL}${path}`;
+}
+
 function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   return typeof value === 'object' && value !== null;
 }
@@ -53,11 +60,7 @@ async function parseResponseBody(response: Response): Promise<unknown> {
   return response.text();
 }
 
-function createHeaders(
-  body: unknown,
-  headers?: HeadersInit,
-  accessToken?: string
-) {
+function createHeaders(body: unknown, headers?: HeadersInit) {
   const requestHeaders = new Headers(headers);
 
   if (
@@ -68,28 +71,15 @@ function createHeaders(
     requestHeaders.set('Content-Type', 'application/json');
   }
 
-  if (accessToken) {
-    requestHeaders.set('Authorization', `Bearer ${accessToken}`);
-  }
-
   return requestHeaders;
 }
 
 async function refreshSession(): Promise<AuthResponse> {
-  const refreshToken = useAuthStore.getState().refreshToken;
-
-  if (!refreshToken) {
-    throw new ApiError('Refresh token is not available', 401);
-  }
-
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const response = await fetch('/api/auth/refresh', {
+      const response = await fetch(buildApiUrl('/auth/refresh'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ refreshToken })
+        credentials: 'include'
       });
 
       const payload = await parseResponseBody(response);
@@ -131,10 +121,10 @@ async function apiRequest<T>(
     ...init
   }: ApiRequestOptions = {}
 ): Promise<T> {
-  const accessToken = auth ? useAuthStore.getState().accessToken : null;
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     ...init,
-    headers: createHeaders(body, headers, accessToken ?? undefined),
+    credentials: 'include',
+    headers: createHeaders(body, headers),
     body:
       body === undefined
         ? undefined
@@ -189,16 +179,11 @@ export function login(credentials: Credentials) {
 }
 
 export async function logout() {
-  const refreshToken = useAuthStore.getState().refreshToken;
-
   try {
-    if (refreshToken) {
-      await apiRequest('/auth/logout', {
-        method: 'POST',
-        body: { refreshToken },
-        retryOnUnauthorized: false
-      });
-    }
+    await apiRequest('/auth/logout', {
+      method: 'POST',
+      retryOnUnauthorized: false
+    });
   } finally {
     useAuthStore.getState().clearSession();
   }
@@ -206,12 +191,6 @@ export async function logout() {
 
 export function getCurrentUser() {
   return apiRequest<CurrentUserResponse>('/auth/me', {
-    auth: true
-  });
-}
-
-export function getAdminAccess() {
-  return apiRequest<AdminAccessResponse>('/auth/admin', {
     auth: true
   });
 }

@@ -19,10 +19,10 @@ const openApiDocument = {
   tags: [{ name: 'Health' }, { name: 'Authentication' }],
   components: {
     securitySchemes: {
-      bearerAuth: {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT'
+      cookieAuth: {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'ssp_access_token'
       }
     },
     schemas: {
@@ -53,21 +53,14 @@ const openApiDocument = {
         },
         required: ['email', 'password']
       },
-      RefreshTokenRequest: {
-        type: 'object',
-        properties: {
-          refreshToken: { type: 'string' }
-        },
-        required: ['refreshToken']
-      },
       AuthResponse: {
         type: 'object',
+        description:
+          'Returns the authenticated user. Access and refresh JWTs are issued as HttpOnly cookies.',
         properties: {
-          user: { $ref: '#/components/schemas/User' },
-          accessToken: { type: 'string' },
-          refreshToken: { type: 'string' }
+          user: { $ref: '#/components/schemas/User' }
         },
-        required: ['user', 'accessToken', 'refreshToken']
+        required: ['user']
       },
       MeResponse: {
         type: 'object',
@@ -160,7 +153,7 @@ const openApiDocument = {
     '/auth/login': {
       post: {
         tags: ['Authentication'],
-        summary: 'Log in and receive access and refresh tokens',
+        summary: 'Log in and receive HttpOnly session cookies',
         requestBody: {
           required: true,
           content: {
@@ -200,15 +193,7 @@ const openApiDocument = {
     '/auth/refresh': {
       post: {
         tags: ['Authentication'],
-        summary: 'Rotate the refresh token and issue a new access token',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/RefreshTokenRequest' }
-            }
-          }
-        },
+        summary: 'Rotate session cookies using the refresh cookie',
         responses: {
           '200': {
             description: 'Refresh successful',
@@ -240,26 +225,10 @@ const openApiDocument = {
     '/auth/logout': {
       post: {
         tags: ['Authentication'],
-        summary: 'Revoke a refresh token',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/RefreshTokenRequest' }
-            }
-          }
-        },
+        summary: 'Revoke the refresh cookie and clear auth cookies',
         responses: {
           '204': {
             description: 'Logout successful'
-          },
-          '400': {
-            description: 'Invalid request payload',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ValidationError' }
-              }
-            }
           }
         }
       }
@@ -268,7 +237,7 @@ const openApiDocument = {
       get: {
         tags: ['Authentication'],
         summary: 'Get the current authenticated user',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         responses: {
           '200': {
             description: 'Authenticated user details',
@@ -301,7 +270,7 @@ const openApiDocument = {
       get: {
         tags: ['Authentication'],
         summary: 'Admin-only authorization check',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         responses: {
           '200': {
             description: 'Admin access granted',

@@ -3,10 +3,9 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { AuthResponse, AuthUser } from '@/types/auth';
 
-type PersistedAuthState = Pick<
-  AuthStore,
-  'user' | 'accessToken' | 'refreshToken'
->;
+type PersistedAuthState = {
+  user: AuthUser | null;
+};
 
 type AuthStore = PersistedAuthState & {
   setSession: (session: AuthResponse) => void;
@@ -18,13 +17,9 @@ export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
       user: null,
-      accessToken: null,
-      refreshToken: null,
-      setSession: ({ user, accessToken, refreshToken }) =>
+      setSession: ({ user }) =>
         set({
-          user,
-          accessToken,
-          refreshToken
+          user
         }),
       setUser: (user) =>
         set((state) => ({
@@ -33,22 +28,22 @@ export const useAuthStore = create<AuthStore>()(
         })),
       clearSession: () =>
         set({
-          user: null,
-          accessToken: null,
-          refreshToken: null
+          user: null
         })
     }),
     {
       name: 'smart-study-planner-auth',
+      version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: ({
-        user,
-        accessToken,
-        refreshToken
-      }): PersistedAuthState => ({
-        user,
-        accessToken,
-        refreshToken
+      migrate: (persistedState): PersistedAuthState => {
+        const state = persistedState as Partial<PersistedAuthState> | null;
+
+        return {
+          user: state?.user ?? null
+        };
+      },
+      partialize: ({ user }): PersistedAuthState => ({
+        user
       })
     }
   )
