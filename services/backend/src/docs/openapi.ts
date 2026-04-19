@@ -4,7 +4,7 @@ const openApiDocument = {
     title: 'Smart Study Planner Backend API',
     version: '1.0.0',
     description:
-      'Authentication and health endpoints for the Smart Study Planner backend.'
+      'Authentication, planning, and analytics endpoints for the Smart Study Planner backend.'
   },
   servers: [
     {
@@ -16,7 +16,7 @@ const openApiDocument = {
       description: 'Behind Traefik reverse proxy'
     }
   ],
-  tags: [{ name: 'Health' }, { name: 'Authentication' }],
+  tags: [{ name: 'Health' }, { name: 'Authentication' }, { name: 'Analysis' }],
   components: {
     securitySchemes: {
       bearerAuth: {
@@ -196,29 +196,116 @@ const openApiDocument = {
       AnalyzeRequest: {
         type: 'object',
         properties: {
-          userId: { type: 'integer' },
-          tasks: { type: 'array', items: { $ref: '#/components/schemas/Task' } }
+          courseId: { type: 'integer' },
+          currentDate: { type: 'string', format: 'date-time' }
+        }
+      },
+      TaskPriorityAnalysis: {
+        type: 'object',
+        properties: {
+          taskId: { type: 'integer' },
+          title: { type: 'string' },
+          courseId: { type: 'integer', nullable: true },
+          deadline: { type: 'string', format: 'date-time', nullable: true },
+          status: {
+            type: 'string',
+            enum: ['pending', 'in_progress', 'completed', 'overdue']
+          },
+          remainingHours: { type: 'number' },
+          daysLeft: { type: 'integer', nullable: true },
+          priorityScore: { type: 'number' }
         },
-        required: ['userId', 'tasks']
+        required: [
+          'taskId',
+          'title',
+          'status',
+          'remainingHours',
+          'priorityScore'
+        ]
+      },
+      TaskRiskAnalysis: {
+        type: 'object',
+        properties: {
+          taskId: { type: 'integer' },
+          title: { type: 'string' },
+          courseId: { type: 'integer', nullable: true },
+          deadline: { type: 'string', format: 'date-time', nullable: true },
+          status: {
+            type: 'string',
+            enum: ['pending', 'in_progress', 'completed', 'overdue']
+          },
+          remainingHours: { type: 'number' },
+          daysLeft: { type: 'integer', nullable: true },
+          riskLevel: {
+            type: 'string',
+            enum: ['none', 'low', 'medium', 'high']
+          }
+        },
+        required: ['taskId', 'title', 'status', 'remainingHours', 'riskLevel']
+      },
+      WorkloadSummary: {
+        type: 'object',
+        properties: {
+          totalRemainingHours: { type: 'number' },
+          planningDays: { type: 'integer' },
+          recommendedHoursPerDay: { type: 'number' },
+          workloadScore: { type: 'number' }
+        },
+        required: [
+          'totalRemainingHours',
+          'planningDays',
+          'recommendedHoursPerDay',
+          'workloadScore'
+        ]
+      },
+      StudyDistributionItem: {
+        type: 'object',
+        properties: {
+          day: { type: 'integer' },
+          date: { type: 'string' },
+          taskId: { type: 'integer' },
+          hours: { type: 'number' }
+        },
+        required: ['day', 'date', 'taskId', 'hours']
       },
       AnalyzeResult: {
         type: 'object',
         properties: {
+          id: { type: 'integer' },
+          userId: { type: 'integer' },
           generatedAt: { type: 'string', format: 'date-time' },
-          workloadScore: { type: 'number', nullable: true },
+          workloadScore: { type: 'number' },
           riskLevel: {
             type: 'string',
-            enum: ['none', 'low', 'medium', 'high'],
-            nullable: true
+            enum: ['none', 'low', 'medium', 'high']
           },
-          recommendedHoursPerDay: { type: 'number', nullable: true },
-          summaryJson: {
-            type: 'object',
-            additionalProperties: true,
-            nullable: true
+          recommendedHoursPerDay: { type: 'number' },
+          taskPriorities: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/TaskPriorityAnalysis' }
+          },
+          taskRiskLevels: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/TaskRiskAnalysis' }
+          },
+          workloadSummary: { $ref: '#/components/schemas/WorkloadSummary' },
+          recommendedStudyDistribution: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/StudyDistributionItem' }
           }
         },
-        required: ['generatedAt']
+        required: [
+          'id',
+          'userId',
+          'generatedAt',
+          'workloadScore',
+          'riskLevel',
+          'recommendedHoursPerDay',
+          'taskPriorities',
+          'taskRiskLevels',
+          'workloadSummary',
+          'recommendedStudyDistribution'
+        ]
       }
     }
   },
@@ -704,12 +791,43 @@ const openApiDocument = {
       }
     },
     '/analysis': {
+      get: {
+        tags: ['Analysis'],
+        summary: 'List saved analytics results for the authenticated user',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Analysis results returned',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    analyses: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/AnalyzeResult' }
+                    }
+                  },
+                  required: ['analyses']
+                }
+              }
+            }
+          },
+          '401': {
+            description: 'Access token missing or invalid',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MessageResponse' }
+              }
+            }
+          }
+        }
+      },
       post: {
         tags: ['Analysis'],
-        summary: 'Request analytics for the authenticated user',
+        summary: 'Generate analytics for the authenticated user tasks',
         security: [{ bearerAuth: [] }],
         requestBody: {
-          required: true,
           content: {
             'application/json': {
               schema: { $ref: '#/components/schemas/AnalyzeRequest' }
@@ -740,6 +858,61 @@ const openApiDocument = {
           },
           '401': {
             description: 'Access token missing or invalid',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MessageResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/analysis/{id}': {
+      get: {
+        tags: ['Analysis'],
+        summary: 'Fetch one saved analytics result',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Analysis returned',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    analysis: { $ref: '#/components/schemas/AnalyzeResult' }
+                  },
+                  required: ['analysis']
+                }
+              }
+            }
+          },
+          '400': {
+            description: 'Invalid analysis id',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MessageResponse' }
+              }
+            }
+          },
+          '401': {
+            description: 'Access token missing or invalid',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MessageResponse' }
+              }
+            }
+          },
+          '404': {
+            description: 'Analysis not found',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/MessageResponse' }

@@ -1,17 +1,145 @@
-import type { Request, Response } from 'express';
-import { Router } from 'express';
-import type { RiskLevel } from '@prisma/client';
+import type { Prisma, RiskLevel, TaskStatus } from '@prisma/client';
+import { Router, type Request, type Response } from 'express';
+import { z } from 'zod';
 
+import { env } from '../config/env.js';
 import { asyncHandler } from '../lib/async-handler.js';
 import { prisma } from '../lib/prisma.js';
 import { authenticateAccessToken } from '../middleware/authenticate.js';
 
 const router = Router();
 
-// All analysis endpoints require an authenticated user
+const analysisRequestSchema = z.object({
+  courseId: z.coerce.number().int().positive().optional(),
+  currentDate: z.string().datetime({ offset: true }).optional()
+});
+
+const pythonTaskPrioritySchema = z.object({
+  task_id: z.number().int().positive(),
+  title: z.string(),
+  course_id: z.number().int().positive().nullable().optional(),
+  deadline: z.string().datetime({ offset: true }).nullable().optional(),
+  status: z.string(),
+  remaining_hours: z.number().nonnegative(),
+  days_left: z.number().int().nullable(),
+  priority_score: z.number().nonnegative()
+});
+
+const pythonTaskRiskSchema = z.object({
+  task_id: z.number().int().positive(),
+  title: z.string(),
+  course_id: z.number().int().positive().nullable().optional(),
+  deadline: z.string().datetime({ offset: true }).nullable().optional(),
+  status: z.string(),
+  remaining_hours: z.number().nonnegative(),
+  days_left: z.number().int().nullable(),
+  risk_level: z.enum(['none', 'low', 'medium', 'high'])
+});
+
+const pythonWorkloadSummarySchema = z.object({
+  total_remaining_hours: z.number().nonnegative(),
+  planning_days: z.number().int().nonnegative(),
+  recommended_hours_per_day: z.number().nonnegative(),
+  workload_score: z.number().nonnegative()
+});
+
+const pythonStudyDistributionItemSchema = z.object({
+  day: z.number().int().positive(),
+  date: z.string(),
+  task_id: z.number().int().positive(),
+  hours: z.number().positive()
+});
+
+const pythonAnalysisSchema = z.object({
+  generated_at: z.string().datetime({ offset: true }),
+  overall_risk_level: z.enum(['none', 'low', 'medium', 'high']),
+  workload_score: z.number().nonnegative(),
+  recommended_hours_per_day: z.number().nonnegative(),
+  task_priorities: z.array(pythonTaskPrioritySchema),
+  task_risk_levels: z.array(pythonTaskRiskSchema),
+  workload_summary: pythonWorkloadSummarySchema,
+  recommended_study_distribution: z.array(pythonStudyDistributionItemSchema)
+});
+
+type AnalysisSummaryJson = {
+  taskPriorities?: unknown;
+  taskRiskLevels?: unknown;
+  workloadSummary?: unknown;
+  recommendedStudyDistribution?: unknown;
+};
+
+function mapPrismaRiskLevel(value: string): RiskLevel {
+  const riskMap: Record<string, RiskLevel> = {
+    none: 'NONE',
+    low: 'LOW',
+    medium: 'MEDIUM',
+    high: 'HIGH'
+  };
+
+  return riskMap[value] ?? 'NONE';
+}
+
+function formatTaskStatus(status: TaskStatus) {
+  return String(status).toLowerCase();
+}
+
+function formatDecimal(value: Prisma.Decimal | number | null | undefined) {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  return Number(String(value));
+}
+
+function serializeAnalysisResult(result: {
+  id: number;
+  userId: number;
+  generatedAt: Date;
+  workloadScore: Prisma.Decimal | number | null | undefined;
+  riskLevel: RiskLevel | string | null | undefined;
+  recommendedHoursPerDay: Prisma.Decimal | number | null | undefined;
+  summaryJson: Prisma.JsonValue | null | undefined;
+}) {
+  const summary =
+    result.summaryJson && typeof result.summaryJson === 'object'
+      ? (result.summaryJson as AnalysisSummaryJson)
+      : undefined;
+
+  return {
+    id: result.id,
+    userId: result.userId,
+    generatedAt: result.generatedAt,
+    workloadScore: formatDecimal(result.workloadScore) ?? 0,
+    riskLevel: result.riskLevel
+      ? String(result.riskLevel).toLowerCase()
+      : 'none',
+    recommendedHoursPerDay: formatDecimal(result.recommendedHoursPerDay) ?? 0,
+    taskPriorities: Array.isArray(summary?.taskPriorities)
+      ? summary.taskPriorities
+      : [],
+    taskRiskLevels: Array.isArray(summary?.taskRiskLevels)
+      ? summary.taskRiskLevels
+      : [],
+    workloadSummary:
+      summary?.workloadSummary && typeof summary.workloadSummary === 'object'
+        ? summary.workloadSummary
+        : {
+            totalRemainingHours: formatDecimal(result.workloadScore) ?? 0,
+            planningDays: 0,
+            recommendedHoursPerDay:
+              formatDecimal(result.recommendedHoursPerDay) ?? 0,
+            workloadScore: formatDecimal(result.workloadScore) ?? 0
+          },
+    recommendedStudyDistribution: Array.isArray(
+      summary?.recommendedStudyDistribution
+    )
+      ? summary.recommendedStudyDistribution
+      : []
+  };
+}
+
 router.use(authenticateAccessToken);
 
-// GET / - this returns saved analysis results for the authenticated user
 router.get(
   '/',
   asyncHandler(async (req: Request, res: Response) => {
@@ -22,90 +150,121 @@ router.get(
       orderBy: { generatedAt: 'desc' }
     });
 
-    const analyses = results.map((r) => ({
-      id: r.id,
-      userId: r.userId,
-      generatedAt: r.generatedAt,
-      workloadScore:
-        r.workloadScore !== null && r.workloadScore !== undefined
-          ? Number(String(r.workloadScore))
-          : undefined,
-      riskLevel: r.riskLevel ? String(r.riskLevel).toLowerCase() : undefined,
-      recommendedHoursPerDay:
-        r.recommendedHoursPerDay !== null &&
-        r.recommendedHoursPerDay !== undefined
-          ? Number(String(r.recommendedHoursPerDay))
-          : undefined,
-      summaryJson: r.summaryJson ?? undefined
-    }));
-
-    res.json({ analyses });
+    res.json({
+      analyses: results.map((result) => serializeAnalysisResult(result))
+    });
   })
 );
 
-// POST / - this forwards the analysis request to the python-service and persists the result
 router.post(
   '/',
   asyncHandler(async (req: Request, res: Response) => {
     const userId = req.auth!.id;
+    const { courseId, currentDate } = analysisRequestSchema.parse(
+      req.body ?? {}
+    );
 
-    // we can forward the request body to the python analysis service.
-    // we can also adjust the target URL if your python service runs on a different host/port.
-    const pythonUrl =
-      process.env.PYTHON_SERVICE_URL ?? 'http://localhost:8000/analyze';
-
-    const response = await fetch(pythonUrl, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ userId, ...(req.body ?? {}) })
+    const tasks = await prisma.task.findMany({
+      where: {
+        course: {
+          userId
+        },
+        ...(courseId !== undefined ? { courseId } : {})
+      },
+      orderBy: [{ deadline: 'asc' }, { createdAt: 'asc' }]
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-      res
-        .status(502)
-        .json({ message: 'Analysis service error', details: text });
+    const pythonResponse = await fetch(env.PYTHON_SERVICE_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        tasks: tasks.map((task) => ({
+          id: task.id,
+          title: task.title,
+          deadline: task.deadline?.toISOString(),
+          estimated_hours: Number(String(task.estimatedHours)),
+          actual_hours: Number(String(task.actualHours)),
+          status: formatTaskStatus(task.status),
+          course_id: task.courseId
+        })),
+        ...(currentDate ? { current_datetime: currentDate } : {})
+      })
+    });
+
+    if (!pythonResponse.ok) {
+      const text = await pythonResponse.text();
+      res.status(502).json({
+        message: 'Analysis service error',
+        details: text
+      });
       return;
     }
 
-    const analysis = await response.json();
+    const analysis = pythonAnalysisSchema.parse(await pythonResponse.json());
 
-    // i mapped python-service risk values (lowercase) to Prisma enum keys (NONE/LOW/MEDIUM/HIGH)
-    const rawRisk =
-      typeof analysis.riskLevel === 'string'
-        ? analysis.riskLevel.trim()
-        : undefined;
-    const normalizedRisk = rawRisk ? rawRisk.toLowerCase() : undefined;
-    const riskMap: Record<string, string> = {
-      none: 'NONE',
-      low: 'LOW',
-      medium: 'MEDIUM',
-      high: 'HIGH'
+    const summaryJson: Prisma.JsonObject = {
+      taskPriorities: analysis.task_priorities.map((item) => ({
+        taskId: item.task_id,
+        title: item.title,
+        courseId: item.course_id ?? null,
+        deadline: item.deadline ?? null,
+        status: item.status,
+        remainingHours: item.remaining_hours,
+        daysLeft: item.days_left,
+        priorityScore: item.priority_score
+      })),
+      taskRiskLevels: analysis.task_risk_levels.map((item) => ({
+        taskId: item.task_id,
+        title: item.title,
+        courseId: item.course_id ?? null,
+        deadline: item.deadline ?? null,
+        status: item.status,
+        remainingHours: item.remaining_hours,
+        daysLeft: item.days_left,
+        riskLevel: item.risk_level
+      })),
+      workloadSummary: {
+        totalRemainingHours: analysis.workload_summary.total_remaining_hours,
+        planningDays: analysis.workload_summary.planning_days,
+        recommendedHoursPerDay:
+          analysis.workload_summary.recommended_hours_per_day,
+        workloadScore: analysis.workload_summary.workload_score
+      },
+      recommendedStudyDistribution: analysis.recommended_study_distribution.map(
+        (item) => ({
+          day: item.day,
+          date: item.date,
+          taskId: item.task_id,
+          hours: item.hours
+        })
+      )
     };
-    const prismaRisk: RiskLevel | undefined =
-      normalizedRisk && riskMap[normalizedRisk]
-        ? (riskMap[normalizedRisk] as RiskLevel)
-        : undefined;
 
     const created = await prisma.analyticsResult.create({
       data: {
         userId,
-        generatedAt: analysis.generatedAt
-          ? new Date(analysis.generatedAt)
-          : undefined,
-        workloadScore: analysis.workloadScore ?? undefined,
-        riskLevel: prismaRisk ?? undefined,
-        recommendedHoursPerDay: analysis.recommendedHoursPerDay ?? undefined,
-        summaryJson: analysis.summaryJson ?? undefined
+        generatedAt: new Date(analysis.generated_at),
+        workloadScore: analysis.workload_score,
+        riskLevel: mapPrismaRiskLevel(analysis.overall_risk_level),
+        recommendedHoursPerDay: analysis.recommended_hours_per_day,
+        summaryJson
       }
     });
 
-    res.status(201).json({ analysis: { ...analysis, id: created.id } });
+    res.status(201).json({
+      analysis: serializeAnalysisResult({
+        id: created.id,
+        userId,
+        generatedAt: new Date(analysis.generated_at),
+        workloadScore: analysis.workload_score,
+        riskLevel: analysis.overall_risk_level,
+        recommendedHoursPerDay: analysis.recommended_hours_per_day,
+        summaryJson
+      })
+    });
   })
 );
 
-// GET /:id - return a single analysis result for the authenticated user
-// we have this so that the clients fetch one analysis directly and avoids fetchiing a large list or getting extra data
 router.get(
   '/:id',
   asyncHandler(async (req: Request, res: Response) => {
@@ -124,26 +283,7 @@ router.get(
       return;
     }
 
-    const analysis = {
-      id: result.id,
-      userId: result.userId,
-      generatedAt: result.generatedAt,
-      workloadScore:
-        result.workloadScore !== null && result.workloadScore !== undefined
-          ? Number(String(result.workloadScore))
-          : undefined,
-      riskLevel: result.riskLevel
-        ? String(result.riskLevel).toLowerCase()
-        : undefined,
-      recommendedHoursPerDay:
-        result.recommendedHoursPerDay !== null &&
-        result.recommendedHoursPerDay !== undefined
-          ? Number(String(result.recommendedHoursPerDay))
-          : undefined,
-      summaryJson: result.summaryJson ?? undefined
-    };
-
-    res.json({ analysis });
+    res.json({ analysis: serializeAnalysisResult(result) });
   })
 );
 

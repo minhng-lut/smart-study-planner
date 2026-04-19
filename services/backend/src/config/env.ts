@@ -8,6 +8,7 @@ const envSchema = z.object({
     .default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().min(1),
+  PYTHON_SERVICE_URL: z.string().url().default('http://localhost:8000/analyze'),
   JWT_ACCESS_SECRET: z.string().min(32).optional(),
   JWT_REFRESH_SECRET: z.string().min(32).optional(),
   JWT_ACCESS_SECRET_FILE: z.string().min(1).optional(),
