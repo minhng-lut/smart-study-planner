@@ -47,6 +47,7 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://app:app@db:5432/app?schema=public
+      PYTHON_SERVICE_URL: http://python-service:8000/analyze
       JWT_ACCESS_SECRET_FILE: /run/secrets/jwt_access_secret
       JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
     command: ['sh', '-lc', 'npx prisma migrate deploy && npm start']
@@ -66,6 +67,13 @@ services:
         - traefik.http.routers.backend.tls=true
         - traefik.http.routers.backend.tls.certresolver=letsencrypt
         - traefik.http.services.backend.loadbalancer.server.port=3000
+
+  python-service:
+    image: hoanglut97/lut-python-service:latest
+    networks:
+      - internal
+    deploy:
+      replicas: 1
 
 volumes:
   db_data:

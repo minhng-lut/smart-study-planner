@@ -11,6 +11,7 @@ import { openApiDocument } from './docs/openapi.js';
 import { authRouter } from './routes/auth.js';
 import { coursesRouter } from './routes/courses.js';
 import { tasksRouter } from './routes/tasks.js';
+import { analysisRouter } from './routes/analysis.js';
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
 app.use('/api/auth', authRouter);
 app.use('/api/courses', coursesRouter);
 app.use('/api/tasks', tasksRouter);
+app.use('/api/analysis', analysisRouter);
 
 app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
   void next;
