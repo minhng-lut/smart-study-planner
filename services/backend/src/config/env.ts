@@ -2,21 +2,42 @@ import 'dotenv/config';
 import fs from 'fs';
 import { z } from 'zod';
 
-const envSchema = z.object({
-  NODE_ENV: z
-    .enum(['development', 'test', 'production'])
-    .default('development'),
-  PORT: z.coerce.number().int().positive().default(3000),
-  DATABASE_URL: z.string().min(1),
-  PYTHON_SERVICE_URL: z.string().url().default('http://localhost:8000/analyze'),
-  FRONTEND_ORIGIN: z.string().url().default('http://localhost:5173'),
-  JWT_ACCESS_SECRET: z.string().min(32).optional(),
-  JWT_REFRESH_SECRET: z.string().min(32).optional(),
-  JWT_ACCESS_SECRET_FILE: z.string().min(1).optional(),
-  JWT_REFRESH_SECRET_FILE: z.string().min(1).optional(),
-  JWT_ACCESS_TTL: z.string().default('15m'),
-  JWT_REFRESH_TTL: z.string().default('7d')
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z
+      .enum(['development', 'test', 'production'])
+      .default('development'),
+    PORT: z.coerce.number().int().positive().default(3000),
+    DATABASE_URL: z.string().min(1),
+    PYTHON_SERVICE_URL: z
+      .string()
+      .url()
+      .default('http://localhost:8000/analyze'),
+    FRONTEND_ORIGIN: z.string().url().default('http://localhost:5173'),
+    JWT_ACCESS_SECRET: z.string().min(32).optional(),
+    JWT_REFRESH_SECRET: z.string().min(32).optional(),
+    JWT_ACCESS_SECRET_FILE: z.string().min(1).optional(),
+    JWT_REFRESH_SECRET_FILE: z.string().min(1).optional(),
+    JWT_ACCESS_TTL: z.string().default('15m'),
+    JWT_REFRESH_TTL: z.string().default('7d')
+  })
+  .superRefine((env, ctx) => {
+    if (env.NODE_ENV !== 'production') {
+      return;
+    }
+
+    for (const key of ['FRONTEND_ORIGIN', 'PYTHON_SERVICE_URL'] as const) {
+      const hostname = new URL(env[key]).hostname;
+
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: `${key} must not use localhost in production`
+        });
+      }
+    }
+  });
 
 const parsedEnv = envSchema.safeParse(process.env);
 

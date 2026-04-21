@@ -48,6 +48,7 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://app:app@db:5432/app?schema=public
       PYTHON_SERVICE_URL: http://python-service:8000/analyze
+      FRONTEND_ORIGIN: https://lut.longle77.site
       JWT_ACCESS_SECRET_FILE: /run/secrets/jwt_access_secret
       JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
     command: ['sh', '-lc', 'npx prisma migrate deploy && npm start']
@@ -71,9 +72,20 @@ services:
   python-service:
     image: hoanglut97/lut-python-service:latest
     networks:
+      - traefik-public
       - internal
     deploy:
       replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik-public
+        - traefik.http.routers.python-service.rule=Host(`lut.longle77.site`) && Path(`/python/health`)
+        - traefik.http.routers.python-service.entrypoints=websecure
+        - traefik.http.routers.python-service.tls=true
+        - traefik.http.routers.python-service.tls.certresolver=letsencrypt
+        - traefik.http.routers.python-service.middlewares=python-strip-prefix
+        - traefik.http.middlewares.python-strip-prefix.stripprefix.prefixes=/python
+        - traefik.http.services.python-service.loadbalancer.server.port=8000
 
 volumes:
   db_data:
