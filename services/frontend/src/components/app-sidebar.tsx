@@ -1,5 +1,6 @@
 import {
   BookMarked,
+  BrainCircuit,
   CalendarDays,
   ChartColumnBig,
   LoaderCircle,
@@ -30,6 +31,11 @@ const mainNavigation = [
     title: 'Dashboard',
     url: '/',
     icon: ChartColumnBig
+  },
+  {
+    title: 'Analytics',
+    url: '/analytics',
+    icon: BrainCircuit
   },
   {
     title: 'Calendar',
