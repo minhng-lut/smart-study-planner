@@ -36,6 +36,16 @@ const pythonTaskRiskSchema = z.object({
   risk_level: z.enum(['none', 'low', 'medium', 'high'])
 });
 
+const pythonOverdueTaskSchema = z.object({
+  task_id: z.number().int().positive(),
+  title: z.string(),
+  course_id: z.number().int().positive().nullable().optional(),
+  deadline: z.string().datetime({ offset: true }).nullable().optional(),
+  status: z.string(),
+  remaining_hours: z.number().nonnegative(),
+  days_overdue: z.number().int().nonnegative()
+});
+
 const pythonWorkloadSummarySchema = z.object({
   total_remaining_hours: z.number().nonnegative(),
   planning_days: z.number().int().nonnegative(),
@@ -57,6 +67,7 @@ const pythonAnalysisSchema = z.object({
   recommended_hours_per_day: z.number().nonnegative(),
   task_priorities: z.array(pythonTaskPrioritySchema),
   task_risk_levels: z.array(pythonTaskRiskSchema),
+  overdue_tasks: z.array(pythonOverdueTaskSchema),
   workload_summary: pythonWorkloadSummarySchema,
   recommended_study_distribution: z.array(pythonStudyDistributionItemSchema)
 });
@@ -64,6 +75,7 @@ const pythonAnalysisSchema = z.object({
 type AnalysisSummaryJson = {
   taskPriorities?: unknown;
   taskRiskLevels?: unknown;
+  overdueTasks?: unknown;
   workloadSummary?: unknown;
   recommendedStudyDistribution?: unknown;
 };
@@ -119,6 +131,9 @@ function serializeAnalysisResult(result: {
       : [],
     taskRiskLevels: Array.isArray(summary?.taskRiskLevels)
       ? summary.taskRiskLevels
+      : [],
+    overdueTasks: Array.isArray(summary?.overdueTasks)
+      ? summary.overdueTasks
       : [],
     workloadSummary:
       summary?.workloadSummary && typeof summary.workloadSummary === 'object'
@@ -222,6 +237,15 @@ router.post(
         remainingHours: item.remaining_hours,
         daysLeft: item.days_left,
         riskLevel: item.risk_level
+      })),
+      overdueTasks: analysis.overdue_tasks.map((item) => ({
+        taskId: item.task_id,
+        title: item.title,
+        courseId: item.course_id ?? null,
+        deadline: item.deadline ?? null,
+        status: item.status,
+        remainingHours: item.remaining_hours,
+        daysOverdue: item.days_overdue
       })),
       workloadSummary: {
         totalRemainingHours: analysis.workload_summary.total_remaining_hours,

@@ -236,6 +236,22 @@ const openApiDocument = {
         },
         required: ['taskId', 'title', 'status', 'remainingHours', 'riskLevel']
       },
+      OverdueTaskAnalysis: {
+        type: 'object',
+        properties: {
+          taskId: { type: 'integer' },
+          title: { type: 'string' },
+          courseId: { type: 'integer', nullable: true },
+          deadline: { type: 'string', format: 'date-time', nullable: true },
+          status: {
+            type: 'string',
+            enum: ['overdue']
+          },
+          remainingHours: { type: 'number' },
+          daysOverdue: { type: 'integer' }
+        },
+        required: ['taskId', 'title', 'status', 'remainingHours', 'daysOverdue']
+      },
       WorkloadSummary: {
         type: 'object',
         properties: {
@@ -281,6 +297,10 @@ const openApiDocument = {
             type: 'array',
             items: { $ref: '#/components/schemas/TaskRiskAnalysis' }
           },
+          overdueTasks: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/OverdueTaskAnalysis' }
+          },
           workloadSummary: { $ref: '#/components/schemas/WorkloadSummary' },
           recommendedStudyDistribution: {
             type: 'array',
@@ -296,6 +316,7 @@ const openApiDocument = {
           'recommendedHoursPerDay',
           'taskPriorities',
           'taskRiskLevels',
+          'overdueTasks',
           'workloadSummary',
           'recommendedStudyDistribution'
         ]
