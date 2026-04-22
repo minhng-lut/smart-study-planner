@@ -751,8 +751,7 @@ function CoursePage() {
       queryClient.setQueryData<AnalysisQueryData>(['analysis'], (current) => ({
         analyses: [
           analysis,
-          ...(current?.analyses.filter((item) => item.id !== analysis.id) ??
-            [])
+          ...(current?.analyses.filter((item) => item.id !== analysis.id) ?? [])
         ]
       }));
     },
