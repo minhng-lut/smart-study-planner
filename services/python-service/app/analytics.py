@@ -15,6 +15,7 @@ except ModuleNotFoundError:
 
 RISK_ORDER = {"none": 0, "low": 1, "medium": 2, "high": 3}
 DEFAULT_PLANNING_DAYS = 7
+MAX_PRIORITY_SCORE = 100.0
 
 
 class TaskInput(BaseModel):
@@ -54,6 +55,16 @@ class TaskRiskOutput(BaseModel):
     risk_level: str
 
 
+class OverdueTaskOutput(BaseModel):
+    task_id: int
+    title: str
+    course_id: Optional[int] = None
+    deadline: Optional[datetime] = None
+    status: str
+    remaining_hours: float
+    days_overdue: int
+
+
 class WorkloadSummary(BaseModel):
     total_remaining_hours: float
     planning_days: int
@@ -75,6 +86,7 @@ class AnalyzeResult(BaseModel):
     recommended_hours_per_day: float
     task_priorities: List[TaskPriorityOutput]
     task_risk_levels: List[TaskRiskOutput]
+    overdue_tasks: List[OverdueTaskOutput]
     workload_summary: WorkloadSummary
     recommended_study_distribution: List[StudyDistributionItem]
 
@@ -91,6 +103,7 @@ class PreparedTask:
     priority_score: float
     risk_level: str
     completed: bool
+    overdue: bool
 
 
 def normalize_datetime(value: Optional[datetime]) -> Optional[datetime]:
@@ -121,46 +134,50 @@ def compute_days_left(deadline: Optional[datetime], now: datetime) -> Optional[i
 def compute_priority_score(
     status: str, remaining_hours: float, days_left: Optional[int]
 ) -> float:
-    if status == "completed":
+    if status == "completed" or (days_left is not None and days_left < 0):
         return 0.0
 
+    # Priority is intentionally normalized to 0-100:
+    # deadline pressure matters most, remaining work second, daily pressure third,
+    # and status only breaks close ties.
     if days_left is None:
-        deadline_score = 10.0
-    elif days_left < 0:
-        deadline_score = 140.0
-    elif days_left == 0:
-        deadline_score = 110.0
-    elif days_left <= 1:
-        deadline_score = 100.0
-    elif days_left <= 3:
-        deadline_score = 80.0
-    elif days_left <= 7:
-        deadline_score = 60.0
-    elif days_left <= 14:
-        deadline_score = 35.0
-    elif days_left <= 30:
-        deadline_score = 15.0
-    else:
         deadline_score = 5.0
+    elif days_left == 0:
+        deadline_score = 45.0
+    elif days_left <= 1:
+        deadline_score = 40.0
+    elif days_left <= 3:
+        deadline_score = 32.0
+    elif days_left <= 7:
+        deadline_score = 24.0
+    elif days_left <= 14:
+        deadline_score = 14.0
+    elif days_left <= 30:
+        deadline_score = 7.0
+    else:
+        deadline_score = 2.0
 
-    remaining_score = min(remaining_hours * 6.0, 60.0)
+    remaining_score = min(remaining_hours * 3.0, 30.0)
 
     if days_left is None:
-        pressure_score = min(remaining_hours * 2.0, 20.0)
-    elif days_left < 0:
-        pressure_score = min(remaining_hours * 10.0, 80.0)
+        pressure_score = min(remaining_hours, 10.0)
     else:
         pressure_score = min(
-            (remaining_hours / max(days_left + 1, 1)) * 18.0, 70.0
+            (remaining_hours / max(days_left + 1, 1)) * 8.0, 20.0
         )
 
     status_bonus = {
-        "pending": 4.0,
-        "in_progress": 8.0,
-        "overdue": 20.0,
+        "pending": 2.0,
+        "in_progress": 5.0,
     }.get(status, 0.0)
 
-    return round(deadline_score + remaining_score + pressure_score + status_bonus, 2)
+    return round(
+        min(
+            deadline_score + remaining_score + pressure_score + status_bonus,
+            MAX_PRIORITY_SCORE,
+        ),
+        2,
+    )
 
 
 def compute_task_risk(
@@ -203,6 +220,13 @@ def prepare_tasks(tasks: List[TaskInput], now: datetime) -> List[PreparedTask]:
             max((task.estimated_hours or 0) - (task.actual_hours or 0), 0.0), 2
         )
         days_left = compute_days_left(deadline, now)
+        overdue = (
+            not is_completed(status)
+            and remaining_hours > 0
+            and days_left is not None
+            and days_left < 0
+        )
+        effective_status = "overdue" if overdue else status
         priority_score = compute_priority_score(status, remaining_hours, days_left)
         risk_level = compute_task_risk(status, remaining_hours, days_left)
 
@@ -212,12 +236,13 @@ def prepare_tasks(tasks: List[TaskInput], now: datetime) -> List[PreparedTask]:
                 title=task.title,
                 course_id=task.course_id,
                 deadline=deadline,
-                status=status,
+                status=effective_status,
                 remaining_hours=remaining_hours,
                 days_left=days_left,
                 priority_score=priority_score,
                 risk_level=risk_level,
                 completed=is_completed(status),
+                overdue=overdue,
             )
         )
 
@@ -225,13 +250,14 @@ def prepare_tasks(tasks: List[TaskInput], now: datetime) -> List[PreparedTask]:
 
 
 def determine_planning_days(tasks: List[PreparedTask]) -> int:
-    unfinished = [task for task in tasks if not task.completed and task.remaining_hours > 0]
+    unfinished = [
+        task
+        for task in tasks
+        if not task.completed and not task.overdue and task.remaining_hours > 0
+    ]
 
     if not unfinished:
         return 0
-
-    if any(task.days_left is not None and task.days_left < 0 for task in unfinished):
-        return 3
 
     future_deadlines = sorted(
         task.days_left for task in unfinished if task.days_left is not None
@@ -245,7 +271,7 @@ def determine_planning_days(tasks: List[PreparedTask]) -> int:
 
 
 def compute_workload_summary(tasks: List[PreparedTask]) -> WorkloadSummary:
-    unfinished = [task for task in tasks if not task.completed]
+    unfinished = [task for task in tasks if not task.completed and not task.overdue]
     active = [task for task in unfinished if task.remaining_hours > 0]
 
     total_remaining_hours = round(sum(task.remaining_hours for task in active), 2)
@@ -256,9 +282,6 @@ def compute_workload_summary(tasks: List[PreparedTask]) -> WorkloadSummary:
     else:
         recommended_hours_per_day = round(total_remaining_hours / planning_days, 2)
 
-    overdue_count = sum(
-        1 for task in active if task.days_left is not None and task.days_left < 0
-    )
     high_risk_count = sum(1 for task in active if task.risk_level == "high")
     max_priority = max((task.priority_score for task in active), default=0.0)
 
@@ -266,7 +289,6 @@ def compute_workload_summary(tasks: List[PreparedTask]) -> WorkloadSummary:
         min(
             100.0,
             recommended_hours_per_day * 15.0
-            + overdue_count * 25.0
             + high_risk_count * 10.0
             + max_priority / 5.0,
         ),
@@ -290,7 +312,11 @@ def build_study_distribution(
     summary: WorkloadSummary,
     start_date: date,
 ) -> List[StudyDistributionItem]:
-    active_tasks = [task for task in tasks if not task.completed and task.remaining_hours > 0]
+    active_tasks = [
+        task
+        for task in tasks
+        if not task.completed and not task.overdue and task.remaining_hours > 0
+    ]
 
     if not active_tasks or summary.planning_days == 0:
         return []
@@ -354,7 +380,12 @@ def build_study_distribution(
 
 
 def build_priority_outputs(tasks: List[PreparedTask]) -> List[TaskPriorityOutput]:
-    ordered_tasks = sorted(tasks, key=lambda task: (-task.priority_score, task.id))
+    active_tasks = [
+        task
+        for task in tasks
+        if not task.completed and not task.overdue and task.remaining_hours > 0
+    ]
+    ordered_tasks = sorted(active_tasks, key=lambda task: (-task.priority_score, task.id))
 
     return [
         TaskPriorityOutput(
@@ -387,6 +418,26 @@ def build_risk_outputs(tasks: List[PreparedTask]) -> List[TaskRiskOutput]:
     ]
 
 
+def build_overdue_outputs(tasks: List[PreparedTask]) -> List[OverdueTaskOutput]:
+    overdue_tasks = sorted(
+        [task for task in tasks if task.overdue],
+        key=lambda task: (task.days_left if task.days_left is not None else 0, task.id),
+    )
+
+    return [
+        OverdueTaskOutput(
+            task_id=task.id,
+            title=task.title,
+            course_id=task.course_id,
+            deadline=task.deadline,
+            status=task.status,
+            remaining_hours=task.remaining_hours,
+            days_overdue=abs(task.days_left or 0),
+        )
+        for task in overdue_tasks
+    ]
+
+
 def analyze(req: AnalyzeRequest) -> AnalyzeResult:
     now = normalize_datetime(req.current_datetime) or datetime.now(UTC)
     now = now.replace(microsecond=0)
@@ -404,6 +455,7 @@ def analyze(req: AnalyzeRequest) -> AnalyzeResult:
         recommended_hours_per_day=workload_summary.recommended_hours_per_day,
         task_priorities=build_priority_outputs(prepared_tasks),
         task_risk_levels=build_risk_outputs(prepared_tasks),
+        overdue_tasks=build_overdue_outputs(prepared_tasks),
         workload_summary=workload_summary,
         recommended_study_distribution=study_distribution,
     )

@@ -46,6 +46,7 @@ import {
   SidebarTrigger
 } from './components/ui/sidebar';
 import AuthPage from './routes/auth-page';
+import AnalyticsPage from './routes/analytics-page';
 import CalendarPage from './routes/calendar-page';
 import CoursePage from './routes/course-page';
 import SettingsPage from './routes/settings-page';
@@ -118,6 +119,7 @@ function ProtectedAppLayout() {
   const currentUser = meQuery.data?.user ?? user;
   const routeLabels: Record<string, string> = {
     '/': 'Dashboard',
+    '/analytics': 'Analytics',
     '/calendar': 'Calendar',
     '/courses': 'Courses',
     '/settings': 'Settings'
@@ -312,6 +314,12 @@ const calendarRoute = createRoute({
   component: CalendarPage
 });
 
+const analyticsRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: '/analytics',
+  component: AnalyticsPage
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: '/settings',
@@ -329,6 +337,7 @@ const routeTree = rootRoute.addChildren([
   legacyAuthRoute,
   protectedRoute.addChildren([
     dashboardRoute,
+    analyticsRoute,
     calendarRoute,
     settingsRoute,
     courseRoute

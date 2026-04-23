@@ -2,9 +2,16 @@ import type { CSSProperties } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { BookOpenText, CalendarDays, ClipboardList } from 'lucide-react';
+import {
+  BookOpenText,
+  BrainCircuit,
+  CalendarDays,
+  ClipboardList,
+  Gauge
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { listAnalyses, type RiskLevel } from '@/lib/analysis-api';
 import { listCourses, type Course } from '@/lib/courses-api';
 
 function getCourseColor(color: string | null) {
@@ -62,10 +69,28 @@ function formatDeadlineTime(date: Date) {
   }).format(date);
 }
 
+const riskLabels: Record<RiskLevel, string> = {
+  none: 'Clear',
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High'
+};
+
+const riskClassNames: Record<RiskLevel, string> = {
+  none: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  low: 'bg-sky-50 text-sky-700 ring-sky-200',
+  medium: 'bg-amber-50 text-amber-800 ring-amber-200',
+  high: 'bg-rose-50 text-rose-700 ring-rose-200'
+};
+
 function App() {
   const coursesQuery = useQuery({
     queryKey: ['courses'],
     queryFn: listCourses
+  });
+  const analysesQuery = useQuery({
+    queryKey: ['analysis'],
+    queryFn: listAnalyses
   });
   const courses = coursesQuery.data?.courses ?? [];
   const totalTasks = courses.reduce(
@@ -73,6 +98,7 @@ function App() {
     0
   );
   const upcomingDeadlines = collectUpcomingDeadlines(courses);
+  const latestAnalysis = analysesQuery.data?.analyses[0];
 
   function createMotionStyle(delay: number): CSSProperties {
     return {
@@ -162,7 +188,59 @@ function App() {
 
           <div
             className="motion-enter border-t border-[var(--study-line)] pt-6"
-            style={createMotionStyle(420)}
+            style={createMotionStyle(400)}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="inline-flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[var(--study-kicker)]">
+                <BrainCircuit className="size-4 text-[var(--study-focus)]" />
+                Study pressure
+              </p>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="rounded-full px-3"
+              >
+                <Link to="/analytics">Analytics</Link>
+              </Button>
+            </div>
+
+            {latestAnalysis ? (
+              <div className="mt-5 space-y-4">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="font-display text-5xl leading-none tracking-[-0.08em] text-[var(--study-ink)]">
+                      {Math.round(latestAnalysis.workloadScore)}
+                    </p>
+                    <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-[var(--study-kicker)]">
+                      Workload score
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${riskClassNames[latestAnalysis.riskLevel]}`}
+                  >
+                    {riskLabels[latestAnalysis.riskLevel]}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-[var(--study-copy)]">
+                  <Gauge className="size-4 text-[var(--study-focus)]" />
+                  <span>
+                    Study {latestAnalysis.recommendedHoursPerDay.toFixed(1)}h
+                    per day across the current planning window.
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-5 border-l border-[var(--study-line)] py-2 pl-4 text-sm leading-7 text-[var(--study-copy-muted)]">
+                Run analytics to see priority, risk, and recommended study
+                distribution.
+              </p>
+            )}
+          </div>
+
+          <div
+            className="motion-enter border-t border-[var(--study-line)] pt-6"
+            style={createMotionStyle(480)}
           >
             <div className="flex items-center justify-between gap-3">
               <p className="inline-flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[var(--study-kicker)]">

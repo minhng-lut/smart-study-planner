@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
   type CSSProperties,
   type FormEvent,
@@ -45,6 +46,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import { createAnalysis, type AnalysisResult } from '@/lib/analysis-api';
 import {
   deleteCourse as deleteCourseRequest,
   listCourses,
@@ -68,6 +70,10 @@ type DeleteTarget =
 
 type CoursesQueryData = {
   courses: Course[];
+};
+
+type AnalysisQueryData = {
+  analyses: AnalysisResult[];
 };
 
 type UpdateCourseVariables = {
@@ -707,6 +713,9 @@ function TaskFields({
 function CoursePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const analysisRefreshTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const pathname = useRouterState({
     select: (state) => state.location.pathname
   });
@@ -736,11 +745,49 @@ function CoursePage() {
     });
   }
 
+  const refreshAnalysisMutation = useMutation({
+    mutationFn: createAnalysis,
+    onSuccess: ({ analysis }) => {
+      queryClient.setQueryData<AnalysisQueryData>(['analysis'], (current) => ({
+        analyses: [
+          analysis,
+          ...(current?.analyses.filter((item) => item.id !== analysis.id) ?? [])
+        ]
+      }));
+    },
+    onError: (error) => {
+      toast.error(
+        getApiErrorMessage(error, 'Analytics refresh failed. Try again later.')
+      );
+    }
+  });
+
+  function scheduleAnalysisRefresh() {
+    if (analysisRefreshTimeoutRef.current) {
+      clearTimeout(analysisRefreshTimeoutRef.current);
+    }
+
+    analysisRefreshTimeoutRef.current = setTimeout(() => {
+      refreshAnalysisMutation.mutate({});
+      analysisRefreshTimeoutRef.current = null;
+    }, 900);
+  }
+
+  useEffect(
+    () => () => {
+      if (analysisRefreshTimeoutRef.current) {
+        clearTimeout(analysisRefreshTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   const createTaskMutation = useMutation({
     mutationFn: createTask,
     onSuccess: ({ task }) => {
       toast.success('Task created');
       patchCourseTasks(task.courseId, (tasks) => [task, ...tasks]);
+      scheduleAnalysisRefresh();
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to create task'));
@@ -760,6 +807,7 @@ function CoursePage() {
       patchCourseTasks(task.courseId, (tasks) =>
         tasks.map((item) => (item.id === task.id ? task : item))
       );
+      scheduleAnalysisRefresh();
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to update task'));
@@ -777,6 +825,7 @@ function CoursePage() {
       patchCourseTasks(task.courseId, (tasks) =>
         tasks.map((item) => (item.id === task.id ? task : item))
       );
+      scheduleAnalysisRefresh();
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to mark task as done'));
@@ -861,6 +910,7 @@ function CoursePage() {
       patchCourseTasks(courseId, (tasks) =>
         tasks.filter((item) => item.id !== taskId)
       );
+      scheduleAnalysisRefresh();
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to delete task'));
