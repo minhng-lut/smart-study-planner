@@ -49,11 +49,30 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/lut-backend:latest ./services/backend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/lut-backend:latest
+  build-analytics:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push analytics image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/lut-python-service:latest ./services/python-service
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/lut-python-service:latest
 
   deploy:
     needs:
       - build-frontend
       - build-backend
+      - build-analytics
     runs-on: ubuntu-latest
 
     steps:
@@ -67,4 +86,5 @@ jobs:
             cd /home/sudo_user/swarm/stacks
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/lut-frontend:latest
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/lut-backend:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/lut-python-service:latest
             docker stack deploy -c app.yml app
