@@ -8,11 +8,7 @@ on:
     paths:
       - 'services/backend/**'
       - '.github/workflows/cd-backend.yml'
-  workflow_dispatch:
-  workflow_run:
-    workflows: ['checks']
-    types:
-      - completed
+  workflow_dispatch: {}
 
 jobs:
   build-and-push-backend:

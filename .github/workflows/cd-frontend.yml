@@ -8,11 +8,7 @@ on:
     paths:
       - 'services/frontend/**'
       - '.github/workflows/cd-frontend.yml'
-  workflow_dispatch:
-  workflow_run:
-    workflows: ['checks']
-    types:
-      - completed
+  workflow_dispatch: {}
 
 jobs:
   build-and-push-frontend:
