@@ -120,7 +120,7 @@ function AuthPage() {
             className="motion-enter font-display mt-6 max-w-4xl text-[clamp(3rem,6vw,6rem)] leading-[0.95] tracking-[-0.04em] text-[var(--study-hero-ink)]"
             style={createMotionStyle(150)}
           >
-            Study planning that feels clear, steady, and a little bit playful!
+            Study planning that feels clear, steady, and a little bit playful?
           </h1>
 
           <p
