@@ -1,6 +1,10 @@
 name: Deploy to Swarm
 
 on:
+  push:
+    branches:
+      - main
+      - production
   workflow_dispatch:
   workflow_run:
     workflows: ['checks']
