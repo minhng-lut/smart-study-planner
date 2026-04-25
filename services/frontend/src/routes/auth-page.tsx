@@ -265,7 +265,7 @@ function AuthPage() {
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--study-copy-muted)]">
               {mode === 'login'
-                ? 'Sign in to manage courses, pending tasks, and study analytics with one calm workspace.'
+                ? 'Sign in to manage planning courses, pending tasks, and study analytics with one calm workspace.'
                 : 'Register to start creating courses, shaping tasks, and building a study plan that feels manageable.'}
             </p>
           </div>
