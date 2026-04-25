@@ -9,7 +9,7 @@ on:
       - 'services/backend/**'
       - '.github/workflows/cd-backend.yml'
   workflow_run:
-    workflows: ["checks"]
+    workflows: ['checks']
     types:
       - completed
 
