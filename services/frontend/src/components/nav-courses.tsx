@@ -229,7 +229,7 @@ export function NavCourses() {
         <PopoverContent
           side="right"
           align="start"
-          className="w-[22rem] rounded-xl border border-[var(--study-popover-border)] bg-[var(--study-popover-surface)] p-0 text-[var(--study-ink)] shadow-[var(--study-popover-shadow)] bg-background"
+          className="w-[22rem] max-h-[85vh] overflow-y-auto rounded-xl border border-[var(--study-popover-border)] bg-[var(--study-popover-surface)] p-0 text-[var(--study-ink)] shadow-[var(--study-popover-shadow)] bg-background"
         >
           <div className="relative overflow-hidden rounded-[inherit] px-4 py-4">
             <div
